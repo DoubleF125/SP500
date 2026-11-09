@@ -8,6 +8,7 @@ const pnlStyle = value => value > 0 ? 'positive' : value < 0 ? 'negative' : 'neu
 const balance = trades => ((state.mode === 'market' && state.error) || (state.mode === 'fiction' && !fictional.source)) ? '—' : usd.format(capital + sum(trades));
 const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + percent.format(value / capital) + '</span>';
 const offline = document.documentElement.dataset.offline === 'true';
+const previewUrl = document.documentElement.dataset.preview;
 const scheduledLedger = document.documentElement.dataset.ledger;
 const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
@@ -215,6 +216,7 @@ function curve(trades) {
   return '<svg class="trace" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="Cumulative realized paper profit and loss"><polyline points="' + coords.join(' ') + '" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
 }
 const plan = {timer:null, input:null, request:null, retryAt:0};
+const livePlan = {request:null,retryAt:0,input:null,slots:[]};
 const nextSlot = now => scheduledSlotsBetween(now + 1, now + 5 * day)[0];
 
 async function refreshPlanBars(now, feed) {
@@ -258,9 +260,61 @@ function marketPlan(now, slot) {
   return {slot,bars:bars.slice(-30),history:state.runs,price,observed};
 }
 
+function refreshLivePlan(now) {
+  if (livePlan.request || now < livePlan.retryAt) return;
+  livePlan.request = (async () => {
+    try {
+      const response = await fetch(previewUrl,{signal:AbortSignal.timeout(75000),cache:'no-store'});
+      if (!response.ok) throw new Error('Preview request failed.');
+      livePlan.input = await response.json();
+    } catch {
+      livePlan.input = {status:'unavailable'};
+    } finally {
+      livePlan.request = null;
+      livePlan.retryAt = Date.now() + 10000;
+      updatePlan();
+    }
+  })();
+}
+
+function updateLivePlan(now) {
+  refreshLivePlan(now);
+  if (!livePlan.slots.length || livePlan.slots[0] <= now) {
+    livePlan.slots = scheduledSlotsBetween(now + 1,now + 5 * day).slice(0,4);
+  }
+  const input = livePlan.input;
+  const status = input?.status;
+  const fresh = status === 'live' && Number.isFinite(input.asOf) &&
+    input.asOf <= now + minute && now - input.asOf <= 3 * minute;
+  const rows = livePlan.slots.map(slot => {
+    const window = fresh ? input.windows?.find(window => window.slot === slot) : null;
+    const side = window?.directions?.[state.detail];
+    const move = side === 1 ? 'Buy' : side === -1 ? 'Short' : side === 0 ? 'Sit out' : 'Pending';
+    const color = side === 1 ? 'positive' : side === -1 ? 'negative' : 'neutral';
+    const rules = window?.groups?.[state.detail - baseCount];
+    return '<li><span>' + timestamp.format(slot) + '</span><strong class="' + color + '">' +
+      move + '</strong>' + (rules ? '<small>' + mixNames(rules) + '</small>' : '') + '</li>';
+  }).join('');
+  const list = el('plan-windows');
+  if (list.innerHTML !== rows) list.innerHTML = rows;
+  const message = fresh ? 'Live preview' : {
+    unconfigured:'Market feed setup required',
+    unavailable:'Preview temporarily unavailable',
+    waiting:'Waiting for fresh SPY bars',
+    live:'Waiting for fresh SPY bars',
+  }[status] ?? 'Connecting to the market feed…';
+  const decision = el('plan-decision');
+  if (decision.textContent !== message) decision.textContent = message;
+  const detail = fresh ? 'Latest completed SPY bar through ' + timestamp.format(input.asOf) + ' Berlin time.'
+    : status === 'waiting' || status === 'live' ? 'A signal needs recent SPY trading activity on the IEX feed.'
+    : '';
+  if (el('plan-detail').textContent !== detail) el('plan-detail').textContent = detail;
+}
+
 function updatePlan() {
   if (state.detail === null || state.mode === 'fiction' || document.hidden) return;
   const now = Date.now();
+  if (previewUrl && offline) return updateLivePlan(now);
   const slot = nextSlot(now);
   const estimate = marketPlan(now,slot);
   const when = estimate?.slot ?? slot;
@@ -316,9 +370,13 @@ function renderDetails(index) {
   }).join('');
   el('detail-body').innerHTML = '<p class="eyebrow">' + (type === 'Mix' ? 'STRATEGY MIX' : 'BASIC STRATEGY') + ' · ' +
     (state.mode === 'fiction' ? 'HISTORICAL BACKTEST' : 'MY RESULTS') + '</p><h2 id="detail-title">' + label +
-    '</h2>' + (state.mode === 'fiction' ? '' : '<section class="plan-card" aria-labelledby="plan-heading"><div class="plan-head"><h3 id="plan-heading">Next planned move</h3>' +
-    '<span id="plan-source" class="plan-source"></span></div><strong id="plan-decision" role="status"></strong><p id="plan-time"></p>' +
-    '<p id="plan-detail"></p><p class="plan-note">Preview only. The strategy decides at the scheduled time using the data available then.</p></section>') +
+    '</h2>' + (state.mode === 'fiction' ? '' : '<section class="plan-card" aria-labelledby="plan-heading"><div class="plan-head"><h3 id="plan-heading">' +
+    (previewUrl && offline ? 'Live plan for the next four windows' : 'Next planned move') + '</h3>' +
+    '<span id="plan-source" class="plan-source">' + (previewUrl && offline ? 'SPY · IEX · BERLIN TIME' : '') + '</span></div>' +
+    '<strong id="plan-decision" role="status"></strong>' + (previewUrl && offline ? '<ul id="plan-windows"></ul>' : '<p id="plan-time"></p>') +
+    '<p id="plan-detail"></p><p class="plan-note">' + (previewUrl && offline
+      ? 'Checks for new one-minute bars every 10 seconds while this panel is open. These are provisional signals. The paper strategy decides at each window using its settlement feed.'
+      : 'Preview only. The strategy decides at the scheduled time using the data available then.') + '</p></section>') +
     '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.map(rule => typeof rule === 'string' ? rule : displaySessionTime(rule.time) + ' · ' + rule.rules).join('</li><li>') + '</li></ul>' : '') +
     '<div class="detail-total"><div><b>Profit or loss (%)</b><small>' + selectionLabel() + '</small></div><strong>' +
     (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Current virtual balance</small><strong>' +

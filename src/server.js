@@ -107,4 +107,4 @@ export default {
   },
 };
 
-export {day, hold, launch, minute, settlePrices, slotPrices, scheduledSlotsBetween};
+export {day, hold, launch, minute, settlePrices, slotPrices, scheduledSlotsBetween, market, signals};
