@@ -141,6 +141,16 @@ h3 {font-size:.95rem;margin:11px 0 5px}
 #plan-windows{display:grid;gap:.35rem;padding:0;margin:.7rem 0;list-style:none}
 #plan-windows li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:.2rem .65rem;padding:.4rem 0;border-bottom:1px solid var(--line,#d6e2d7)}
 #plan-windows small{grid-column:1/-1}
+
+.next-move-filter {align-self:flex-end}
+.next-move-filter button[aria-expanded=true] {background:var(--accent);color:#fff;font-weight:680}
+.next-move-panel {margin:0 20px 12px}
+.next-move-panel h3 {margin:0;font-size:1rem}
+#next-move-time {margin:.25rem 0;font-weight:680}
+#next-move-status {margin:.25rem 0;color:var(--soft);font-size:.85rem}
+#next-move-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));column-gap:1.2rem;padding:0;margin:.5rem 0;list-style:none}
+#next-move-list li {display:flex;justify-content:space-between;gap:.6rem;padding:.3rem 0;border-bottom:1px solid #c9ddcc}
+#next-move-list strong {white-space:nowrap}
 </style>
   <style>
     .market-overview { margin-top:22px; padding:18px 20px 12px; border:1px solid var(--line); border-radius:16px; background:var(--white); }
@@ -255,11 +265,21 @@ h3 {font-size:.95rem;margin:11px 0 5px}
           <button type="button" data-value="15:15" aria-pressed="false">21:15</button>
         </div>
       </div>
+      <div id="next-move-filter" class="pills next-move-filter">
+        <button type="button" id="next-move" aria-expanded="false" aria-controls="next-move-panel">Next move</button>
+      </div>
       <div id="week-day-filter" class="filter week-day-filter" hidden>
         <span id="week-day-label" class="filter-label">Which day? <small>Berlin date</small></span>
         <div id="week-day" class="pills" role="group" aria-labelledby="week-day-label"></div>
       </div>
     </div>
+    <section id="next-move-panel" class="plan-card next-move-panel" aria-labelledby="next-move-heading" hidden>
+      <h3 id="next-move-heading">Expected moves for the next window</h3>
+      <p id="next-move-time"></p>
+      <p id="next-move-status" role="status"></p>
+      <ul id="next-move-list"></ul>
+      <p class="plan-note">Signals can change before the window starts. Sell (short) means the strategy expects SPY to fall.</p>
+    </section>
     <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
     <div class="rank-header" aria-hidden="true"><span></span><span>Strategy</span><span>Return %</span><span>Balance</span><span></span></div>
     <ol id="rankings" class="rankings" aria-label="Ranked strategies"></ol>
@@ -565,6 +585,8 @@ function render() {
     el(id).setAttribute('aria-pressed',String(active));
   }
   el('period-filter').hidden = replay;
+  el('next-move-filter').hidden = replay;
+  if (replay) setNextMove(false);
   renderWeekDays(!replay && state.period === '7');
   el('history-input').hidden = !replay;
   el('history-day-filter').hidden = !replay || !fictional.runs.length;
@@ -697,11 +719,12 @@ function refreshLivePlan(now) {
       livePlan.request = null;
       livePlan.retryAt = Date.now() + 10000;
       updatePlan();
+      updateNextMove();
     }
   })();
 }
 
-function updateLivePlan(now) {
+function liveWindows(now) {
   refreshLivePlan(now);
   if (!livePlan.slots.length || livePlan.slots[0] <= now) {
     livePlan.slots = scheduledSlotsBetween(now + 1,now + 5 * day).slice(0,4);
@@ -710,7 +733,21 @@ function updateLivePlan(now) {
   const status = input?.status;
   const fresh = status === 'live' && Number.isFinite(input.asOf) &&
     input.asOf <= now + minute && now - input.asOf <= 3 * minute;
-  const rows = livePlan.slots.map(slot => {
+  return {fresh,status,input,slots:livePlan.slots};
+}
+
+function livePreviewStatus(fresh,status) {
+  return fresh ? 'Live preview' : {
+    unconfigured:'Market feed setup required',
+    unavailable:'Preview temporarily unavailable',
+    waiting:'Waiting for fresh SPY bars',
+    live:'Waiting for fresh SPY bars',
+  }[status] ?? 'Connecting to the market feed…';
+}
+
+function updateLivePlan(now) {
+  const {fresh,status,input,slots} = liveWindows(now);
+  const rows = slots.map(slot => {
     const window = fresh ? input.windows?.find(window => window.slot === slot) : null;
     const side = window?.directions?.[state.detail];
     const move = side === 1 ? 'Buy' : side === -1 ? 'Short' : side === 0 ? 'Sit out' : 'Pending';
@@ -721,12 +758,7 @@ function updateLivePlan(now) {
   }).join('');
   const list = el('plan-windows');
   if (list.innerHTML !== rows) list.innerHTML = rows;
-  const message = fresh ? 'Live preview' : {
-    unconfigured:'Market feed setup required',
-    unavailable:'Preview temporarily unavailable',
-    waiting:'Waiting for fresh SPY bars',
-    live:'Waiting for fresh SPY bars',
-  }[status] ?? 'Connecting to the market feed…';
+  const message = livePreviewStatus(fresh,status);
   const decision = el('plan-decision');
   if (decision.textContent !== message) decision.textContent = message;
   const detail = fresh ? 'Latest completed SPY bar through ' + timestamp.format(input.asOf) + ' Berlin time.'
@@ -734,6 +766,52 @@ function updateLivePlan(now) {
     : '';
   if (el('plan-detail').textContent !== detail) el('plan-detail').textContent = detail;
 }
+
+let nextMoveTimer = null;
+function setNextMove(open) {
+  const button = el('next-move');
+  button.setAttribute('aria-expanded',String(open));
+  el('next-move-panel').hidden = !open;
+  clearInterval(nextMoveTimer);
+  nextMoveTimer = null;
+  if (open) {
+    updateNextMove();
+    nextMoveTimer = setInterval(updateNextMove,1000);
+  }
+}
+
+function updateNextMove() {
+  if (el('next-move-panel').hidden || document.hidden) return;
+  const now = Date.now();
+  let slot;
+  let directions;
+  let message;
+  if (offline && previewUrl) {
+    const {fresh,status,input,slots} = liveWindows(now);
+    slot = slots[0];
+    directions = fresh ? input.windows?.find(window => window.slot === slot)?.directions : null;
+    message = directions ? 'Live SPY preview · IEX data through ' + timestamp.format(input.asOf) + ' Berlin time.'
+      : fresh ? 'Updating the next window…' : livePreviewStatus(false,status);
+  } else {
+    slot = nextSlot(now);
+    const estimate = marketPlan(now,slot);
+    directions = estimate ? signals(estimate.bars,estimate.history,slot).directions : null;
+    message = estimate ? 'Live SPY preview · ' + timestamp.format(estimate.observed) + ' Berlin time.'
+      : state.configured ? 'Waiting for fresh SPY prices' : 'Market feed setup required';
+  }
+  const time = timestamp.format(slot) + ' Berlin time';
+  if (el('next-move-time').textContent !== time) el('next-move-time').textContent = time;
+  if (el('next-move-status').textContent !== message) el('next-move-status').textContent = message;
+  const rows = tactics.map(([,label],index) => {
+    const side = directions?.[index];
+    const move = side === 1 ? 'Buy' : side === -1 ? 'Sell (short)' : side === 0 ? 'Sit out' : 'Pending';
+    return '<li><span>' + label + '</span><strong class="' + pnlStyle(side) + '">' + move + '</strong></li>';
+  }).join('');
+  const list = el('next-move-list');
+  if (list.innerHTML !== rows) list.innerHTML = rows;
+}
+
+el('next-move').addEventListener('click',() => setNextMove(el('next-move-panel').hidden));
 
 function updatePlan() {
   if (state.detail === null || state.mode === 'fiction' || document.hidden) return;

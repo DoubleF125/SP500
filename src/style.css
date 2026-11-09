@@ -133,3 +133,13 @@ h3 {font-size:.95rem;margin:11px 0 5px}
 #plan-windows{display:grid;gap:.35rem;padding:0;margin:.7rem 0;list-style:none}
 #plan-windows li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:.2rem .65rem;padding:.4rem 0;border-bottom:1px solid var(--line,#d6e2d7)}
 #plan-windows small{grid-column:1/-1}
+
+.next-move-filter {align-self:flex-end}
+.next-move-filter button[aria-expanded=true] {background:var(--accent);color:#fff;font-weight:680}
+.next-move-panel {margin:0 20px 12px}
+.next-move-panel h3 {margin:0;font-size:1rem}
+#next-move-time {margin:.25rem 0;font-weight:680}
+#next-move-status {margin:.25rem 0;color:var(--soft);font-size:.85rem}
+#next-move-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));column-gap:1.2rem;padding:0;margin:.5rem 0;list-style:none}
+#next-move-list li {display:flex;justify-content:space-between;gap:.6rem;padding:.3rem 0;border-bottom:1px solid #c9ddcc}
+#next-move-list strong {white-space:nowrap}

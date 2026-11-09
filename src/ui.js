@@ -141,6 +141,8 @@ function render() {
     el(id).setAttribute('aria-pressed',String(active));
   }
   el('period-filter').hidden = replay;
+  el('next-move-filter').hidden = replay;
+  if (replay) setNextMove(false);
   renderWeekDays(!replay && state.period === '7');
   el('history-input').hidden = !replay;
   el('history-day-filter').hidden = !replay || !fictional.runs.length;
@@ -273,11 +275,12 @@ function refreshLivePlan(now) {
       livePlan.request = null;
       livePlan.retryAt = Date.now() + 10000;
       updatePlan();
+      updateNextMove();
     }
   })();
 }
 
-function updateLivePlan(now) {
+function liveWindows(now) {
   refreshLivePlan(now);
   if (!livePlan.slots.length || livePlan.slots[0] <= now) {
     livePlan.slots = scheduledSlotsBetween(now + 1,now + 5 * day).slice(0,4);
@@ -286,7 +289,21 @@ function updateLivePlan(now) {
   const status = input?.status;
   const fresh = status === 'live' && Number.isFinite(input.asOf) &&
     input.asOf <= now + minute && now - input.asOf <= 3 * minute;
-  const rows = livePlan.slots.map(slot => {
+  return {fresh,status,input,slots:livePlan.slots};
+}
+
+function livePreviewStatus(fresh,status) {
+  return fresh ? 'Live preview' : {
+    unconfigured:'Market feed setup required',
+    unavailable:'Preview temporarily unavailable',
+    waiting:'Waiting for fresh SPY bars',
+    live:'Waiting for fresh SPY bars',
+  }[status] ?? 'Connecting to the market feed…';
+}
+
+function updateLivePlan(now) {
+  const {fresh,status,input,slots} = liveWindows(now);
+  const rows = slots.map(slot => {
     const window = fresh ? input.windows?.find(window => window.slot === slot) : null;
     const side = window?.directions?.[state.detail];
     const move = side === 1 ? 'Buy' : side === -1 ? 'Short' : side === 0 ? 'Sit out' : 'Pending';
@@ -297,12 +314,7 @@ function updateLivePlan(now) {
   }).join('');
   const list = el('plan-windows');
   if (list.innerHTML !== rows) list.innerHTML = rows;
-  const message = fresh ? 'Live preview' : {
-    unconfigured:'Market feed setup required',
-    unavailable:'Preview temporarily unavailable',
-    waiting:'Waiting for fresh SPY bars',
-    live:'Waiting for fresh SPY bars',
-  }[status] ?? 'Connecting to the market feed…';
+  const message = livePreviewStatus(fresh,status);
   const decision = el('plan-decision');
   if (decision.textContent !== message) decision.textContent = message;
   const detail = fresh ? 'Latest completed SPY bar through ' + timestamp.format(input.asOf) + ' Berlin time.'
@@ -310,6 +322,52 @@ function updateLivePlan(now) {
     : '';
   if (el('plan-detail').textContent !== detail) el('plan-detail').textContent = detail;
 }
+
+let nextMoveTimer = null;
+function setNextMove(open) {
+  const button = el('next-move');
+  button.setAttribute('aria-expanded',String(open));
+  el('next-move-panel').hidden = !open;
+  clearInterval(nextMoveTimer);
+  nextMoveTimer = null;
+  if (open) {
+    updateNextMove();
+    nextMoveTimer = setInterval(updateNextMove,1000);
+  }
+}
+
+function updateNextMove() {
+  if (el('next-move-panel').hidden || document.hidden) return;
+  const now = Date.now();
+  let slot;
+  let directions;
+  let message;
+  if (offline && previewUrl) {
+    const {fresh,status,input,slots} = liveWindows(now);
+    slot = slots[0];
+    directions = fresh ? input.windows?.find(window => window.slot === slot)?.directions : null;
+    message = directions ? 'Live SPY preview · IEX data through ' + timestamp.format(input.asOf) + ' Berlin time.'
+      : fresh ? 'Updating the next window…' : livePreviewStatus(false,status);
+  } else {
+    slot = nextSlot(now);
+    const estimate = marketPlan(now,slot);
+    directions = estimate ? signals(estimate.bars,estimate.history,slot).directions : null;
+    message = estimate ? 'Live SPY preview · ' + timestamp.format(estimate.observed) + ' Berlin time.'
+      : state.configured ? 'Waiting for fresh SPY prices' : 'Market feed setup required';
+  }
+  const time = timestamp.format(slot) + ' Berlin time';
+  if (el('next-move-time').textContent !== time) el('next-move-time').textContent = time;
+  if (el('next-move-status').textContent !== message) el('next-move-status').textContent = message;
+  const rows = tactics.map(([,label],index) => {
+    const side = directions?.[index];
+    const move = side === 1 ? 'Buy' : side === -1 ? 'Sell (short)' : side === 0 ? 'Sit out' : 'Pending';
+    return '<li><span>' + label + '</span><strong class="' + pnlStyle(side) + '">' + move + '</strong></li>';
+  }).join('');
+  const list = el('next-move-list');
+  if (list.innerHTML !== rows) list.innerHTML = rows;
+}
+
+el('next-move').addEventListener('click',() => setNextMove(el('next-move-panel').hidden));
 
 function updatePlan() {
   if (state.detail === null || state.mode === 'fiction' || document.hidden) return;

@@ -121,11 +121,21 @@
           <button type="button" data-value="15:15" aria-pressed="false">21:15</button>
         </div>
       </div>
+      <div id="next-move-filter" class="pills next-move-filter">
+        <button type="button" id="next-move" aria-expanded="false" aria-controls="next-move-panel">Next move</button>
+      </div>
       <div id="week-day-filter" class="filter week-day-filter" hidden>
         <span id="week-day-label" class="filter-label">Which day? <small>Berlin date</small></span>
         <div id="week-day" class="pills" role="group" aria-labelledby="week-day-label"></div>
       </div>
     </div>
+    <section id="next-move-panel" class="plan-card next-move-panel" aria-labelledby="next-move-heading" hidden>
+      <h3 id="next-move-heading">Expected moves for the next window</h3>
+      <p id="next-move-time"></p>
+      <p id="next-move-status" role="status"></p>
+      <ul id="next-move-list"></ul>
+      <p class="plan-note">Signals can change before the window starts. Sell (short) means the strategy expects SPY to fall.</p>
+    </section>
     <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
     <div class="rank-header" aria-hidden="true"><span></span><span>Strategy</span><span>Return %</span><span>Balance</span><span></span></div>
     <ol id="rankings" class="rankings" aria-label="Ranked strategies"></ol>
