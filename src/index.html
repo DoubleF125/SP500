@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7ef">
+  <title>SPY Strategy Lab</title>
+  <meta name="description" content="Compare 17 paper-trading strategies at three set times.">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#leaderboard">Skip to strategies</a>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand"><span class="logo" aria-hidden="true">✳</span> SPY Strategy Lab</div>
+    <div class="mode" role="group" aria-label="Data source">
+      <button type="button" id="market" aria-pressed="true">My results</button>
+      <button type="button" id="fiction" aria-pressed="false">Historical backtest</button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="hero" aria-labelledby="page-heading">
+    <div>
+      <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
+      <h1 id="page-heading">Find your trading rhythm.</h1>
+      <p class="intro">Compare 17 ways to trade SPY at the same three times of day, using virtual money.</p>
+    </div>
+    <svg class="sunrise" viewBox="0 0 278 152" fill="none" aria-hidden="true">
+      <path d="M72 117a67 67 0 0 1 134 0" fill="#ffce69"/>
+      <path d="M91 117a48 48 0 0 1 96 0" fill="#ffae60"/>
+      <path d="M48 118h182m-157 13h132m-108 13h84" stroke="#315e54" stroke-width="2" stroke-linecap="round"/>
+      <path d="M139 32V14m-61 42-13-13m135 13 13-13M56 91H40m182 0h16" stroke="#765116" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </section>
+  <div class="status">
+    <p id="notice" class="notice" role="status"></p>
+    <aside id="quote" class="quote" aria-label="SPY market quote" hidden><span>SPY price</span> <strong id="price">—</strong><small id="quote-note"></small></aside>
+  </div>
+  <section class="board" aria-labelledby="leaderboard">
+    <div class="board-head">
+      <div>
+        <p class="eyebrow">12 BASIC STRATEGIES · 5 MIXES</p>
+        <h2 id="leaderboard" tabindex="-1">Compare strategies</h2>
+        <p>Profit or loss is a percentage of the starting $1,000 and follows your filters. Balance shows your total in dollars.</p>
+      </div>
+    </div>
+    <div id="history-input" class="history-input" hidden>
+      <label for="history-file">Import SPY minute prices (CSV)</label>
+      <input id="history-file" type="file" accept=".csv,text/csv" aria-describedby="history-format">
+      <p id="history-format">Use timestamp, open, high, low, close, volume columns. Include UTC or a time-zone offset in each timestamp.</p>
+    </div>
+    <div class="filters">
+      <div id="history-day-filter" class="filter" hidden>
+        <label for="history-day" class="filter-label">Which day? <small>Berlin date</small></label>
+        <select id="history-day"></select>
+      </div>
+      <div class="filter" id="period-filter">
+        <span id="period-label" class="filter-label">How far back?</span>
+        <div class="pills" id="period" role="group" aria-labelledby="period-label">
+          <button type="button" data-value="1" aria-pressed="false">1 day</button>
+          <button type="button" data-value="7" aria-pressed="false">1 week</button>
+          <button type="button" data-value="all" aria-pressed="true">Since start</button>
+        </div>
+      </div>
+      <div class="filter">
+        <span id="session-label" class="filter-label">Which time? <small>Berlin time</small></span>
+        <div class="pills" id="session" role="group" aria-labelledby="session-label">
+          <button type="button" data-value="all" aria-pressed="true">All times</button>
+          <button type="button" data-value="07:45" aria-pressed="false">07:45</button>
+          <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
+          <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
+        </div>
+      </div>
+    </div>
+    <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
+    <div class="rank-header" aria-hidden="true"><span></span><span>Strategy</span><span>Return %</span><span>Balance</span><span></span></div>
+    <ol id="rankings" class="rankings" aria-label="Ranked strategies"></ol>
+  </section>
+  <footer>
+    <details>
+      <summary>How paper trading works</summary>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 07:45, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
+    </details>
+  </footer>
+</main>
+<dialog id="detail" aria-labelledby="detail-title">
+  <div class="detail-inner">
+    <button type="button" id="close-detail" class="close" aria-label="Close strategy details" autofocus>×</button>
+    <div id="detail-body"></div>
+  </div>
+</dialog>
+</body>
+</html>
