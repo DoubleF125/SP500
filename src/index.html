@@ -8,6 +8,18 @@
   <meta name="description" content="Compare 17 paper-trading strategies at three set times.">
   <link rel="stylesheet" href="/style.css">
   <script defer src="/app.js"></script>
+  <style>
+    .market-overview { margin-top:22px; padding:18px 20px 12px; border:1px solid var(--line); border-radius:16px; background:var(--white); }
+    .market-overview p:not(.eyebrow), .market-overview .tradingview-widget-copyright { color:var(--soft); font-size:.82rem; }
+    .market-overview p:not(.eyebrow) { margin-top:5px; }
+    .market-overview a { color:var(--accent); }
+    .market-overview .tradingview-widget-container { height:360px; margin-top:12px; }
+    .market-overview .tradingview-widget-container__widget { height:calc(100% - 24px); }
+    @media (max-width:550px) {
+      .market-overview { padding:14px 12px 10px; }
+      .market-overview .tradingview-widget-container { height:320px; }
+    }
+  </style>
 </head>
 <body>
 <a class="skip" href="#leaderboard">Skip to strategies</a>
@@ -21,6 +33,30 @@
   </div>
 </header>
 <main class="wrap">
+  <section class="market-overview" aria-labelledby="market-overview-title">
+    <p class="eyebrow">MARKET OVERVIEW · EUR</p>
+    <h2 id="market-overview-title">S&amp;P 500 tracker in euros</h2>
+    <p>SPY ETF price and returns converted to EUR. Quotes are delayed by 15 minutes. Choose 1D, 1W, 1M or 1Y to view each period.</p>
+    <p><a href="https://www.tradingview.com/symbols/SPX/" target="_blank" rel="noopener noreferrer">Official S&amp;P 500 index (SPX)</a></p>
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
+      <script src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+      {
+        "symbols": [["SPY", "AMEX:SPY|1D|EUR"]],
+        "dateRanges": ["1d|1", "1w|60", "1m|30", "12m|1D"],
+        "autosize": true,
+        "colorTheme": "light",
+        "locale": "en",
+        "chartType": "area",
+        "changeMode": "price-and-percent",
+        "hideMarketStatus": false,
+        "hideDateRanges": false,
+        "showVolume": false
+      }
+      </script>
+    </div>
+  </section>
   <section class="hero" aria-labelledby="page-heading">
     <div>
       <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
