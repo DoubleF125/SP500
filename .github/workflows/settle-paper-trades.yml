@@ -9,6 +9,8 @@ on:
       timezone: Europe/Berlin
     - cron: '55 18 * * 1-5'
       timezone: Europe/Berlin
+    - cron: '10 22 * * 1-5'
+      timezone: Europe/Berlin
 
 permissions:
   contents: write

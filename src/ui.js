@@ -1,5 +1,6 @@
 const el = id => document.getElementById(id);
 const usd = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'});
+const signedUsd = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',signDisplay:'exceptZero'});
 const percent = new Intl.NumberFormat('en-US', {style:'percent',signDisplay:'exceptZero',minimumFractionDigits:2,maximumFractionDigits:3});
 const timestamp = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',dateStyle:'medium',timeStyle:'medium'});
 const sum = trades => round(trades.reduce((total,trade) => total + trade.pnl,0));
@@ -108,7 +109,7 @@ const periodNames = {'1':'Last day','7':'Last week',all:'Since Nov 9, 2026'};
 const timeName = time => sessions.find(session => session.time === time)?.label;
 const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
 function selectionLabel() {
-  const time = state.session === 'all' ? 'All three times' : timeName(state.session) + ' · ' + state.session;
+  const time = state.session === 'all' ? 'All times' : timeName(state.session) + ' · ' + state.session;
   if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
   const selected = state.period === '7' && state.weekDay !== 'all'
     ? weekDayLabel.format(Date.parse(state.weekDay + 'T00:00:00Z')) : periodNames[state.period];
@@ -282,6 +283,7 @@ function renderDetails(index) {
   const [,label,type,description,schedule] = tactics[index];
   const runs = scoped();
   const trades = tradesFor(runs,index);
+  const allTrades = tradesFor(scoped(false,false),index);
   const byTime = tradesFor(scoped(true,false),index);
   const noSignal = runs.filter(run => run.status === 'settled' && run.trades[index]?.side === 0).length;
   const skipped = runs.filter(run => run.status === 'skipped').length;
@@ -290,12 +292,13 @@ function renderDetails(index) {
     return '<div><span>' + session.label + ' · ' + session.time + '</span><b>' +
       (atTime.length ? returnLabel(sum(atTime)) : '—') + '</b><small>' + countTrades(atTime.length) + '</small></div>';
   }).join('');
-  const cards = trades.slice().reverse().map(trade => {
+  const cards = allTrades.slice().sort((a,b) => b.slot - a.slot).map(trade => {
     const isUp = trade.side === 1;
     const fill = (label,time,price) => '<div><dt>' + label + '</dt><dd>' + (Number.isFinite(price) ? usd.format(price) : '') + '<small>' +
       timestamp.format(time) + '</small></dd></div>';
     return '<li class="trade"><div class="trade-title"><b>' + slotLabel(trade.slot) + ' · Bet ' + (isUp?'up':'down') +
-      '</b>' + returnLabel(trade.pnl) + '</div><dl>' +
+      '</b><span class="trade-pnl"><strong class="' + pnlStyle(trade.pnl) + '">' + signedUsd.format(trade.pnl) + '</strong> ' +
+      returnLabel(trade.pnl) + '</span></div><dl>' +
       fill(isUp?'Bought':'Sold to open',trade.entryTime,trade.entry) +
       fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + '</dl>' +
       (trade.rules?.length ? '<p class="subtle">Rules used · ' + mixNames(trade.rules) + '</p>' : '') +
@@ -310,11 +313,11 @@ function renderDetails(index) {
     '<p id="plan-detail"></p><p class="plan-note">Preview only. The strategy decides at the scheduled time using the data available then.</p></section>') +
     '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.join('</li><li>') + '</li></ul>' : '') +
     '<div class="detail-total"><div><b>Profit or loss (%)</b><small>' + selectionLabel() + '</small></div><strong>' +
-    (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Account balance</small><strong>' +
-    balance(tradesFor(scoped(false,false),index)) + '</strong></div></div>' +
+    (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Current virtual balance</small><strong>' +
+    balance(allTrades) + '</strong><small>Net P&amp;L across ' + countTrades(allTrades.length) + ' · ' + signedUsd.format(sum(allTrades)) + '</small></div></div>' +
     '<h3>Compare times <small>In this period</small></h3><div class="detail-metrics">' + slots + '</div>' +
-    '<h3>Trade history <small>Berlin time</small></h3>' +
-    (cards ? '<ol class="trade-list">' + cards + '</ol>' : '<p class="empty">No completed trades in this view.</p>') +
+    '<h3>All completed trades <small>Berlin time · newest first</small></h3>' +
+    (cards ? '<ol class="trade-list">' + cards + '</ol>' : '<p class="empty">No completed trades for this strategy yet.</p>') +
     '<details class="extra"><summary>More about these results</summary>' + curve(trades) + '<p class="subtle">' +
     noSignal + ' windows had no signal. ' + skipped + ' windows had too little market data.</p></details>';
 }

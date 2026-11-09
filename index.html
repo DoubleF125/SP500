@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f7ef">
   <title>SPY Strategy Lab</title>
-  <meta name="description" content="Compare 17 paper-trading strategies at three set times.">
+  <meta name="description" content="Compare 17 paper-trading strategies at four set times.">
   <style>:root {
   color-scheme: light;
   --bg:#f8f7ef; --white:#fffefa; --ink:#183c33; --soft:#53665d;
@@ -81,13 +81,19 @@ dialog::backdrop {background:#19382d80}
 .detail-total {gap:8px;background:var(--mint);border-radius:10px;padding:10px 12px;margin:14px 0}
 .detail-total strong {font-size:1.3rem}
 h3 {font-size:.95rem;margin:11px 0 5px}
-.detail-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:13px}
+.detail-metrics {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:13px}
 .detail-metrics div,.trade,.empty {background:#f7f9f3;padding:8px;border:1px solid var(--line);border-radius:9px}
 .detail-metrics div>span {display:block;color:var(--soft);font-size:.75rem}
 .detail-metrics b {display:block;margin-top:2px}
 .trade-list {display:grid;gap:6px}
 .trade {padding:9px 10px}
-.trade-title {gap:8px}
+.trade-title {gap:8px;flex-wrap:wrap}
+.trade-pnl {display:flex;gap:8px;align-items:baseline;white-space:nowrap}
+.trade-pnl .num {font-size:.78rem}
+#session {flex-wrap:wrap}
+@media(max-width:550px) {
+  .detail-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 .trade dl {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 12px;margin:6px 0}
 .trade dt {font-size:.75rem;color:var(--soft)}
 .trade dd {margin:0;font-size:.88rem;font-weight:700}
@@ -196,7 +202,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     <div>
       <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
       <h1 id="page-heading">Find your trading rhythm.</h1>
-      <p class="intro">Compare 17 ways to trade SPY at the same three times of day, using virtual money.</p>
+      <p class="intro">Compare 17 ways to trade SPY at the same four times of day, using virtual money.</p>
     </div>
     <svg class="sunrise" viewBox="0 0 278 152" fill="none" aria-hidden="true">
       <path d="M72 117a67 67 0 0 1 134 0" fill="#ffce69"/>
@@ -242,6 +248,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
           <button type="button" data-value="08:15" aria-pressed="false">08:15</button>
           <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
           <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
+          <button type="button" data-value="21:15" aria-pressed="false">21:15</button>
         </div>
       </div>
       <div id="week-day-filter" class="filter week-day-filter" hidden>
@@ -256,7 +263,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
   <footer>
     <details>
       <summary>How paper trading works</summary>
-      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 08:15, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at 08:15, 15:15, 18:00, and 21:15 Berlin time. Each trade lasts about 30 minutes.</p>
       <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
     </details>
   </footer>
@@ -281,6 +288,7 @@ const sessions = [
   {time:'08:15', label:'Morning'},
   {time:'15:15', label:'Afternoon'},
   {time:'18:00', label:'Evening'},
+  {time:'21:15', label:'Late evening'},
 ];
 const tactics = [
   ['long','Always Up','Basic','Bets on SPY going up at each available time.'],
@@ -297,13 +305,13 @@ const tactics = [
   ['adaptive','Learning Vote','Basic','Gives more weight to rules that worked in up to 30 earlier windows at the same time of day.'],
 ];
 const baseCount = tactics.length;
-const playbook = [6, 8, 2];
-const consensus = [[3,6,7], [2,5,8], [2,4,9]];
-const confirmed = [[6,11], [5,8], [4,10]];
+const playbook = [6, 8, 2, 2];
+const consensus = [[3,6,7], [2,5,8], [2,4,9], [2,4,9]];
+const confirmed = [[6,11], [5,8], [4,10], [4,10]];
 const mixNames = indexes => indexes.map(index => tactics[index][1]).join(' + ');
 const timetable = groups => groups.map((indexes, index) => sessions[index].time + ' · ' + mixNames(indexes));
 tactics.push(
-  ['playbook','One Rule per Time','Mix','Uses a different rule at each of the three times.',timetable(playbook.map(index => [index]))],
+  ['playbook','One Rule per Time','Mix','Uses a rule selected for each time slot.',timetable(playbook.map(index => [index]))],
   ['consensus','Time-of-Day Vote','Mix','Changes the voting group by time of day. Two of three rules must agree.',timetable(consensus)],
   ['confirmed','Double Check','Mix','Uses two rules at each time. Both must point in the same direction.',timetable(confirmed)],
   ['leader','Recent Winner','Mix','Picks the most profitable basic strategy for that time from up to 20 earlier windows. Requires at least five prior trades and positive net results.', ['Uses One Rule per Time until a qualifying winner is available.']],
@@ -400,6 +408,7 @@ function settlePrices(prices, history) {
 
 const el = id => document.getElementById(id);
 const usd = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'});
+const signedUsd = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',signDisplay:'exceptZero'});
 const percent = new Intl.NumberFormat('en-US', {style:'percent',signDisplay:'exceptZero',minimumFractionDigits:2,maximumFractionDigits:3});
 const timestamp = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',dateStyle:'medium',timeStyle:'medium'});
 const sum = trades => round(trades.reduce((total,trade) => total + trade.pnl,0));
@@ -508,7 +517,7 @@ const periodNames = {'1':'Last day','7':'Last week',all:'Since Nov 9, 2026'};
 const timeName = time => sessions.find(session => session.time === time)?.label;
 const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
 function selectionLabel() {
-  const time = state.session === 'all' ? 'All three times' : timeName(state.session) + ' · ' + state.session;
+  const time = state.session === 'all' ? 'All times' : timeName(state.session) + ' · ' + state.session;
   if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
   const selected = state.period === '7' && state.weekDay !== 'all'
     ? weekDayLabel.format(Date.parse(state.weekDay + 'T00:00:00Z')) : periodNames[state.period];
@@ -682,6 +691,7 @@ function renderDetails(index) {
   const [,label,type,description,schedule] = tactics[index];
   const runs = scoped();
   const trades = tradesFor(runs,index);
+  const allTrades = tradesFor(scoped(false,false),index);
   const byTime = tradesFor(scoped(true,false),index);
   const noSignal = runs.filter(run => run.status === 'settled' && run.trades[index]?.side === 0).length;
   const skipped = runs.filter(run => run.status === 'skipped').length;
@@ -690,12 +700,13 @@ function renderDetails(index) {
     return '<div><span>' + session.label + ' · ' + session.time + '</span><b>' +
       (atTime.length ? returnLabel(sum(atTime)) : '—') + '</b><small>' + countTrades(atTime.length) + '</small></div>';
   }).join('');
-  const cards = trades.slice().reverse().map(trade => {
+  const cards = allTrades.slice().sort((a,b) => b.slot - a.slot).map(trade => {
     const isUp = trade.side === 1;
     const fill = (label,time,price) => '<div><dt>' + label + '</dt><dd>' + (Number.isFinite(price) ? usd.format(price) : '') + '<small>' +
       timestamp.format(time) + '</small></dd></div>';
     return '<li class="trade"><div class="trade-title"><b>' + slotLabel(trade.slot) + ' · Bet ' + (isUp?'up':'down') +
-      '</b>' + returnLabel(trade.pnl) + '</div><dl>' +
+      '</b><span class="trade-pnl"><strong class="' + pnlStyle(trade.pnl) + '">' + signedUsd.format(trade.pnl) + '</strong> ' +
+      returnLabel(trade.pnl) + '</span></div><dl>' +
       fill(isUp?'Bought':'Sold to open',trade.entryTime,trade.entry) +
       fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + '</dl>' +
       (trade.rules?.length ? '<p class="subtle">Rules used · ' + mixNames(trade.rules) + '</p>' : '') +
@@ -710,11 +721,11 @@ function renderDetails(index) {
     '<p id="plan-detail"></p><p class="plan-note">Preview only. The strategy decides at the scheduled time using the data available then.</p></section>') +
     '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.join('</li><li>') + '</li></ul>' : '') +
     '<div class="detail-total"><div><b>Profit or loss (%)</b><small>' + selectionLabel() + '</small></div><strong>' +
-    (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Account balance</small><strong>' +
-    balance(tradesFor(scoped(false,false),index)) + '</strong></div></div>' +
+    (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Current virtual balance</small><strong>' +
+    balance(allTrades) + '</strong><small>Net P&amp;L across ' + countTrades(allTrades.length) + ' · ' + signedUsd.format(sum(allTrades)) + '</small></div></div>' +
     '<h3>Compare times <small>In this period</small></h3><div class="detail-metrics">' + slots + '</div>' +
-    '<h3>Trade history <small>Berlin time</small></h3>' +
-    (cards ? '<ol class="trade-list">' + cards + '</ol>' : '<p class="empty">No completed trades in this view.</p>') +
+    '<h3>All completed trades <small>Berlin time · newest first</small></h3>' +
+    (cards ? '<ol class="trade-list">' + cards + '</ol>' : '<p class="empty">No completed trades for this strategy yet.</p>') +
     '<details class="extra"><summary>More about these results</summary>' + curve(trades) + '<p class="subtle">' +
     noSignal + ' windows had no signal. ' + skipped + ' windows had too little market data.</p></details>';
 }

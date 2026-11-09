@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f7ef">
   <title>SPY Strategy Lab</title>
-  <meta name="description" content="Compare 17 paper-trading strategies at three set times.">
+  <meta name="description" content="Compare 17 paper-trading strategies at four set times.">
   <link rel="stylesheet" href="/style.css">
   <script defer src="/app.js"></script>
   <style>
@@ -72,7 +72,7 @@
     <div>
       <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
       <h1 id="page-heading">Find your trading rhythm.</h1>
-      <p class="intro">Compare 17 ways to trade SPY at the same three times of day, using virtual money.</p>
+      <p class="intro">Compare 17 ways to trade SPY at the same four times of day, using virtual money.</p>
     </div>
     <svg class="sunrise" viewBox="0 0 278 152" fill="none" aria-hidden="true">
       <path d="M72 117a67 67 0 0 1 134 0" fill="#ffce69"/>
@@ -118,6 +118,7 @@
           <button type="button" data-value="08:15" aria-pressed="false">08:15</button>
           <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
           <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
+          <button type="button" data-value="21:15" aria-pressed="false">21:15</button>
         </div>
       </div>
       <div id="week-day-filter" class="filter week-day-filter" hidden>
@@ -132,7 +133,7 @@
   <footer>
     <details>
       <summary>How paper trading works</summary>
-      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 08:15, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at 08:15, 15:15, 18:00, and 21:15 Berlin time. Each trade lasts about 30 minutes.</p>
       <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
     </details>
   </footer>

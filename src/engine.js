@@ -12,6 +12,7 @@ const sessions = [
   {time:'08:15', label:'Morning'},
   {time:'15:15', label:'Afternoon'},
   {time:'18:00', label:'Evening'},
+  {time:'21:15', label:'Late evening'},
 ];
 const tactics = [
   ['long','Always Up','Basic','Bets on SPY going up at each available time.'],
@@ -28,13 +29,13 @@ const tactics = [
   ['adaptive','Learning Vote','Basic','Gives more weight to rules that worked in up to 30 earlier windows at the same time of day.'],
 ];
 const baseCount = tactics.length;
-const playbook = [6, 8, 2];
-const consensus = [[3,6,7], [2,5,8], [2,4,9]];
-const confirmed = [[6,11], [5,8], [4,10]];
+const playbook = [6, 8, 2, 2];
+const consensus = [[3,6,7], [2,5,8], [2,4,9], [2,4,9]];
+const confirmed = [[6,11], [5,8], [4,10], [4,10]];
 const mixNames = indexes => indexes.map(index => tactics[index][1]).join(' + ');
 const timetable = groups => groups.map((indexes, index) => sessions[index].time + ' · ' + mixNames(indexes));
 tactics.push(
-  ['playbook','One Rule per Time','Mix','Uses a different rule at each of the three times.',timetable(playbook.map(index => [index]))],
+  ['playbook','One Rule per Time','Mix','Uses a rule selected for each time slot.',timetable(playbook.map(index => [index]))],
   ['consensus','Time-of-Day Vote','Mix','Changes the voting group by time of day. Two of three rules must agree.',timetable(consensus)],
   ['confirmed','Double Check','Mix','Uses two rules at each time. Both must point in the same direction.',timetable(confirmed)],
   ['leader','Recent Winner','Mix','Picks the most profitable basic strategy for that time from up to 20 earlier windows. Requires at least five prior trades and positive net results.', ['Uses One Rule per Time until a qualifying winner is available.']],
