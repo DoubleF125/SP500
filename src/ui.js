@@ -8,11 +8,20 @@ const balance = trades => ((state.mode === 'market' && state.error) || (state.mo
 const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + percent.format(value / capital) + '</span>';
 const offline = document.documentElement.dataset.offline === 'true';
 const scheduledLedger = document.documentElement.dataset.ledger;
-const state = {mode:'market',period:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
+const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
 const fictional = {runs:[],end:0,source:'',loading:false,error:'',selectedDay:'all'};
 const shortDate = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',day:'numeric',month:'short'});
 const berlinDate = new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'});
+const weekDayLabel = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'});
+function berlinWeek(now) {
+  // Shift calendar dates in UTC so the seven Berlin dates survive clock changes.
+  const today = Date.parse(berlinDate.format(now) + 'T00:00:00Z');
+  return Array.from({length:7}, (_, index) => {
+    const date = today - (6 - index) * day;
+    return {key:new Date(date).toISOString().slice(0,10), label:weekDayLabel.format(date)};
+  });
+}
 function completeRuns(runs, now) {
   return runs.filter(run => run.slot <= now && (run.status !== 'settled' || run.trades[0]?.exitTime <= now));
 }
@@ -82,10 +91,15 @@ function scoped(applyPeriod = true, applySession = true) {
   const replay = state.mode === 'fiction';
   const now = Date.now();
   const runs = completeRuns(replay ? fictional.runs : state.runs,now);
-  const start = !replay && applyPeriod && state.period !== 'all' ? now - Number(state.period) * day : 0;
-  return runs.filter(run => (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
-    (!replay || !applyPeriod || fictional.selectedDay === 'all' || berlinDate.format(run.slot) === fictional.selectedDay) &&
-    (!applySession || state.session === 'all' || slotLabel(run.slot) === state.session));
+  const weekStart = !replay && applyPeriod && state.period === '7' ? berlinWeek(now)[0].key : null;
+  const start = !replay && applyPeriod && state.period === '1' ? now - day : 0;
+  return runs.filter(run => {
+    const date = berlinDate.format(run.slot);
+    return (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
+      (!weekStart || (date >= weekStart && (state.weekDay === 'all' || date === state.weekDay))) &&
+      (!replay || !applyPeriod || fictional.selectedDay === 'all' || date === fictional.selectedDay) &&
+      (!applySession || state.session === 'all' || slotLabel(run.slot) === state.session);
+  });
 }
 function tradesFor(runs, index) {
   return runs.filter(run => run.status === 'settled' && run.trades[index]?.side).map(run => ({...run.trades[index],slot:run.slot,feed:run.feed,samples:run.trainingSamples,score:run.ensembleScore}));
@@ -96,7 +110,24 @@ const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
 function selectionLabel() {
   const time = state.session === 'all' ? 'All three times' : timeName(state.session) + ' · ' + state.session;
   if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
-  return periodNames[state.period] + ' · ' + time;
+  const selected = state.period === '7' && state.weekDay !== 'all'
+    ? weekDayLabel.format(Date.parse(state.weekDay + 'T00:00:00Z')) : periodNames[state.period];
+  return selected + ' · ' + time;
+}
+function renderWeekDays(show) {
+  el('week-day-filter').hidden = !show;
+  if (!show) return;
+  const dates = berlinWeek(Date.now());
+  if (!dates.some(date => date.key === state.weekDay)) state.weekDay = 'all';
+  const picker = el('week-day');
+  if (picker.dataset.today !== dates.at(-1).key) {
+    picker.dataset.today = dates.at(-1).key;
+    picker.innerHTML = '<button type="button" data-value="all">All days</button>' +
+      dates.map(({key,label}) => '<button type="button" data-value="' + key + '">' + label + '</button>').join('');
+  }
+  for (const button of picker.querySelectorAll('button')) {
+    button.setAttribute('aria-pressed',String(button.dataset.value === state.weekDay));
+  }
 }
 function render() {
   const replay = state.mode === 'fiction';
@@ -104,6 +135,7 @@ function render() {
     el(id).setAttribute('aria-pressed',String(active));
   }
   el('period-filter').hidden = replay;
+  renderWeekDays(!replay && state.period === '7');
   el('history-input').hidden = !replay;
   el('history-day-filter').hidden = !replay || !fictional.runs.length;
   if (replay) {
@@ -290,13 +322,23 @@ for (const type of ['period','session']) {
   el(type).addEventListener('click',event => {
     const button = event.target.closest('button');
     if (!button) return;
+    if (type === 'period' && state.period !== button.dataset.value) state.weekDay = 'all';
     state[type] = button.dataset.value;
     render();
   });
 }
+el('week-day').addEventListener('click',event => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  state.weekDay = button.dataset.value;
+  render();
+});
 el('reset').addEventListener('click',() => {
   if (state.mode === 'fiction') fictional.selectedDay = 'all';
-  else state.period = 'all';
+  else {
+    state.period = 'all';
+    state.weekDay = 'all';
+  }
   state.session = 'all';
   render();
   el(state.mode === 'fiction' ? 'session' : 'period').querySelector('[data-value="all"]').focus();

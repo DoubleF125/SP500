@@ -19,6 +19,8 @@
       .market-overview { padding:14px 12px 10px; }
       .market-overview .tradingview-widget-container { height:320px; }
     }
+    .week-day-filter { flex-basis:100%; }
+    .week-day-filter .pills { flex-wrap:wrap; max-width:100%; }
   </style>
 </head>
 <body>
@@ -108,6 +110,10 @@
           <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
           <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
         </div>
+      </div>
+      <div id="week-day-filter" class="filter week-day-filter" hidden>
+        <span id="week-day-label" class="filter-label">Which day? <small>Berlin date</small></span>
+        <div id="week-day" class="pills" role="group" aria-labelledby="week-day-label"></div>
       </div>
     </div>
     <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
