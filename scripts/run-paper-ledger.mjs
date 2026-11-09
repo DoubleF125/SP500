@@ -1,5 +1,5 @@
 import {readFile, writeFile} from 'node:fs/promises';
-import {day, hold, launch, minute, settlePrices, slotPrices, slotsBetween} from '../dist/server/index.js';
+import {day, hold, launch, minute, settlePrices, slotPrices, scheduledSlotsBetween} from '../dist/server/index.js';
 
 const path = process.argv[2];
 if (!path) throw new Error('Supply a paper ledger JSON path.');
@@ -19,7 +19,7 @@ if (!Array.isArray(runs)) throw new Error('Existing paper ledger is invalid.');
 const now = Date.now();
 const cutoff = now - (hold + 2 + 15) * minute;
 const known = new Set(runs.map(run => run.slot));
-const due = slotsBetween(Math.max(activation, now - 7 * day), cutoff).filter(slot => !known.has(slot));
+const due = scheduledSlotsBetween(Math.max(activation, now - 7 * day), cutoff).filter(slot => !known.has(slot));
 let added = 0;
 let failures = 0;
 for (const slot of due) {

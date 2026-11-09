@@ -9,10 +9,10 @@ const round = value => Math.round(value * 100) / 100;
 const direction = (value, threshold = 0) => Math.abs(value) > threshold ? Math.sign(value) : 0;
 
 const sessions = [
-  {time:'08:15', label:'Morning'},
-  {time:'15:15', label:'Afternoon'},
-  {time:'18:00', label:'Evening'},
-  {time:'21:15', label:'Late evening'},
+  {time:'09:15', label:'Before the open'},
+  {time:'09:45', label:'After the open'},
+  {time:'12:00', label:'U.S. midday'},
+  {time:'15:15', label:'Before the close'},
 ];
 const tactics = [
   ['long','Always Up','Basic','Bets on SPY going up at each available time.'],
@@ -29,11 +29,11 @@ const tactics = [
   ['adaptive','Learning Vote','Basic','Gives more weight to rules that worked in up to 30 earlier windows at the same time of day.'],
 ];
 const baseCount = tactics.length;
-const playbook = [6, 8, 2, 2];
-const consensus = [[3,6,7], [2,5,8], [2,4,9], [2,4,9]];
-const confirmed = [[6,11], [5,8], [4,10], [4,10]];
+const playbook = [8, 8, 2, 2];
+const consensus = [[2,5,8], [2,5,8], [2,4,9], [2,4,9]];
+const confirmed = [[5,8], [5,8], [4,10], [4,10]];
 const mixNames = indexes => indexes.map(index => tactics[index][1]).join(' + ');
-const timetable = groups => groups.map((indexes, index) => sessions[index].time + ' · ' + mixNames(indexes));
+const timetable = groups => groups.map((indexes, index) => ({time:sessions[index].time,rules:mixNames(indexes)}));
 tactics.push(
   ['playbook','One Rule per Time','Mix','Uses a rule selected for each time slot.',timetable(playbook.map(index => [index]))],
   ['consensus','Time-of-Day Vote','Mix','Changes the voting group by time of day. Two of three rules must agree.',timetable(consensus)],
@@ -42,8 +42,15 @@ tactics.push(
   ['top-three','Top Three Vote','Mix','Lets the three strongest qualifying basic strategies vote at each time. Two must agree.', ['Ranks by net results across up to 20 earlier windows for the same time, with at least five prior trades per rule. Uses the Time-of-Day Vote when fewer than three rules qualify.']],
 );
 const berlin = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-const ny = new Intl.DateTimeFormat('en-GB', {timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23'});
+const ny = new Intl.DateTimeFormat('en-GB', {timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 const slotLabel = time => berlin.format(time);
+const sessionKey = time => ny.format(time);
+const clockMinutes = clock => Number(clock.slice(0,2)) * 60 + Number(clock.slice(3));
+function berlinSessionTime(easternTime, date = Date.now()) {
+  const minutes = (clockMinutes(easternTime) + clockMinutes(slotLabel(date)) -
+    clockMinutes(sessionKey(date)) + 1440) % 1440;
+  return String(Math.floor(minutes / 60)).padStart(2,'0') + ':' + String(minutes % 60).padStart(2,'0');
+}
 const feedAt = time => {
   const hour = Number(ny.format(time).slice(0,2));
   return hour < 4 || hour >= 20 ? 'boats' : 'sip';
@@ -52,9 +59,14 @@ function slotsBetween(start, end) {
   const times = [];
   for (let t = Math.ceil(start / (15 * minute)) * 15 * minute; t <= end; t += 15 * minute) {
     const weekday = new Date(t).getUTCDay();
-    if (weekday > 0 && weekday < 6 && sessions.some(session => session.time === slotLabel(t))) times.push(t);
+    if (weekday > 0 && weekday < 6 && sessions.some(session => session.time === sessionKey(t))) times.push(t);
   }
   return times;
+}
+// Start the new post-open paper window on the first trading day after the schedule change.
+const postOpenStart = Date.parse('2026-11-10T00:00:00-05:00');
+function scheduledSlotsBetween(start, end) {
+  return slotsBetween(start,end).filter(slot => slot >= postOpenStart || sessionKey(slot) !== '09:45');
 }
 function signals(bars, history, slot) {
   const close = bars.map(bar => bar.c);
@@ -78,8 +90,8 @@ function signals(bars, history, slot) {
     bars.at(-1).v > 1.5 * mean(bars.slice(-21,-1).map(bar => bar.v)) ? direction(momentum, 0.0003) : 0,
     energy(changes.slice(-5)) > 1.2 * energy(changes.slice(0,-5)) ? direction(momentum, 0.0003) : 0,
   ];
-  const sessionIndex = sessions.findIndex(session => session.time === slotLabel(slot));
-  const past = history.filter(run => run.status === 'settled' && run.trades[0]?.exitTime < slot && slotLabel(run.slot) === slotLabel(slot))
+  const sessionIndex = sessions.findIndex(session => session.time === sessionKey(slot));
+  const past = history.filter(run => run.status === 'settled' && run.trades[0]?.exitTime < slot && sessionKey(run.slot) === sessionKey(slot))
     .sort((a,b) => a.slot - b.slot).slice(-30);
   const weights = technical.map((_, i) => Math.exp(30 * past.reduce((score, run) => score + run.trades[i+2].pnl / capital, 0) / Math.sqrt(Math.max(1,past.length))));
   const weightedVote = technical.reduce((score, signal, i) => score + signal * weights[i], 0) / weights.reduce((sum, weight) => sum + weight, 0);

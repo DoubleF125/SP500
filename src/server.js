@@ -34,7 +34,7 @@ async function reconcile(env, history, now) {
   const activation = Math.max(launch, Date.parse(env.MARKET_ACTIVE_FROM || new Date(now).toISOString()));
   if (!Number.isFinite(activation)) throw new Error('MARKET_ACTIVE_FROM must be an ISO timestamp.');
   const cutoff = now - (hold + 2) * minute;
-  const due = slotsBetween(Math.max(activation, now - 7 * day), cutoff).filter(slot => !known.has(slot));
+  const due = scheduledSlotsBetween(Math.max(activation, now - 7 * day), cutoff).filter(slot => !known.has(slot));
   for (const slot of due) {
     const prices = await slotPrices(env,slot);
     if (!prices.complete && now < prices.end + 20 * minute) continue;
@@ -107,4 +107,4 @@ export default {
   },
 };
 
-export {day, hold, launch, minute, settlePrices, slotPrices, slotsBetween};
+export {day, hold, launch, minute, settlePrices, slotPrices, scheduledSlotsBetween};

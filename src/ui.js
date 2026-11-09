@@ -99,7 +99,7 @@ function scoped(applyPeriod = true, applySession = true) {
     return (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
       (!weekStart || (date >= weekStart && (state.weekDay === 'all' || date === state.weekDay))) &&
       (!replay || !applyPeriod || fictional.selectedDay === 'all' || date === fictional.selectedDay) &&
-      (!applySession || state.session === 'all' || slotLabel(run.slot) === state.session);
+      (!applySession || state.session === 'all' || sessionKey(run.slot) === state.session);
   });
 }
 function tradesFor(runs, index) {
@@ -107,9 +107,13 @@ function tradesFor(runs, index) {
 }
 const periodNames = {'1':'Last day','7':'Last week',all:'Since Nov 9, 2026'};
 const timeName = time => sessions.find(session => session.time === time)?.label;
+function displaySessionTime(time) {
+  const date = state.mode === 'fiction' ? fictional.selectedDay : state.period === '7' ? state.weekDay : 'all';
+  return berlinSessionTime(time, date === 'all' ? Date.now() : Date.parse(date + 'T12:00:00Z'));
+}
 const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
 function selectionLabel() {
-  const time = state.session === 'all' ? 'All times' : timeName(state.session) + ' · ' + state.session;
+  const time = state.session === 'all' ? 'All times' : timeName(state.session) + ' · ' + displaySessionTime(state.session);
   if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
   const selected = state.period === '7' && state.weekDay !== 'all'
     ? weekDayLabel.format(Date.parse(state.weekDay + 'T00:00:00Z')) : periodNames[state.period];
@@ -159,6 +163,10 @@ function render() {
       : 'No paper trades recorded. The live SPY feed is disconnected.');
   el('selection').textContent = selectionLabel();
   el('reset').hidden = (replay ? fictional.selectedDay === 'all' : state.period === 'all') && state.session === 'all';
+  for (const button of el('session').querySelectorAll('button[data-value]:not([data-value="all"])')) {
+    button.textContent = displaySessionTime(button.dataset.value);
+  }
+  el('schedule-times').textContent = sessions.map(session => berlinSessionTime(session.time)).join(', ');
   for (const type of ['period','session']) {
     for (const button of el(type).querySelectorAll('button')) {
       button.setAttribute('aria-pressed',String(state[type] === button.dataset.value));
@@ -207,7 +215,7 @@ function curve(trades) {
   return '<svg class="trace" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="Cumulative realized paper profit and loss"><polyline points="' + coords.join(' ') + '" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
 }
 const plan = {timer:null, input:null, request:null, retryAt:0};
-const nextSlot = now => slotsBetween(now + 1, now + 5 * day)[0];
+const nextSlot = now => scheduledSlotsBetween(now + 1, now + 5 * day)[0];
 
 async function refreshPlanBars(now, feed) {
   if (plan.request || now < plan.retryAt) return;
@@ -288,8 +296,8 @@ function renderDetails(index) {
   const noSignal = runs.filter(run => run.status === 'settled' && run.trades[index]?.side === 0).length;
   const skipped = runs.filter(run => run.status === 'skipped').length;
   const slots = sessions.map(session => {
-    const atTime = byTime.filter(trade => slotLabel(trade.slot) === session.time);
-    return '<div><span>' + session.label + ' · ' + session.time + '</span><b>' +
+    const atTime = byTime.filter(trade => sessionKey(trade.slot) === session.time);
+    return '<div><span>' + session.label + ' · ' + displaySessionTime(session.time) + '</span><b>' +
       (atTime.length ? returnLabel(sum(atTime)) : '—') + '</b><small>' + countTrades(atTime.length) + '</small></div>';
   }).join('');
   const cards = allTrades.slice().sort((a,b) => b.slot - a.slot).map(trade => {
@@ -311,7 +319,7 @@ function renderDetails(index) {
     '</h2>' + (state.mode === 'fiction' ? '' : '<section class="plan-card" aria-labelledby="plan-heading"><div class="plan-head"><h3 id="plan-heading">Next planned move</h3>' +
     '<span id="plan-source" class="plan-source"></span></div><strong id="plan-decision" role="status"></strong><p id="plan-time"></p>' +
     '<p id="plan-detail"></p><p class="plan-note">Preview only. The strategy decides at the scheduled time using the data available then.</p></section>') +
-    '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.join('</li><li>') + '</li></ul>' : '') +
+    '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.map(rule => typeof rule === 'string' ? rule : displaySessionTime(rule.time) + ' · ' + rule.rules).join('</li><li>') + '</li></ul>' : '') +
     '<div class="detail-total"><div><b>Profit or loss (%)</b><small>' + selectionLabel() + '</small></div><strong>' +
     (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Current virtual balance</small><strong>' +
     balance(allTrades) + '</strong><small>Net P&amp;L across ' + countTrades(allTrades.length) + ' · ' + signedUsd.format(sum(allTrades)) + '</small></div></div>' +

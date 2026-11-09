@@ -115,10 +115,10 @@
         <span id="session-label" class="filter-label">Which time? <small>Berlin time</small></span>
         <div class="pills" id="session" role="group" aria-labelledby="session-label">
           <button type="button" data-value="all" aria-pressed="true">All times</button>
-          <button type="button" data-value="08:15" aria-pressed="false">08:15</button>
-          <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
-          <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
-          <button type="button" data-value="21:15" aria-pressed="false">21:15</button>
+          <button type="button" data-value="09:15" aria-pressed="false">15:15</button>
+          <button type="button" data-value="09:45" aria-pressed="false">15:45</button>
+          <button type="button" data-value="12:00" aria-pressed="false">18:00</button>
+          <button type="button" data-value="15:15" aria-pressed="false">21:15</button>
         </div>
       </div>
       <div id="week-day-filter" class="filter week-day-filter" hidden>
@@ -133,7 +133,7 @@
   <footer>
     <details>
       <summary>How paper trading works</summary>
-      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at 08:15, 15:15, 18:00, and 21:15 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at <span id="schedule-times">15:15, 15:45, 18:00, 21:15</span> Berlin time. The windows follow New York market time, so the Berlin times adjust when clocks change. Each trade lasts about 30 minutes.</p>
       <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
     </details>
   </footer>
