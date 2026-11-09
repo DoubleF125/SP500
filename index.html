@@ -228,7 +228,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
         <span id="session-label" class="filter-label">Which time? <small>Berlin time</small></span>
         <div class="pills" id="session" role="group" aria-labelledby="session-label">
           <button type="button" data-value="all" aria-pressed="true">All times</button>
-          <button type="button" data-value="07:45" aria-pressed="false">07:45</button>
+          <button type="button" data-value="08:15" aria-pressed="false">08:15</button>
           <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
           <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
         </div>
@@ -241,7 +241,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
   <footer>
     <details>
       <summary>How paper trading works</summary>
-      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 07:45, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 08:15, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
       <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
     </details>
   </footer>
@@ -263,7 +263,7 @@ const round = value => Math.round(value * 100) / 100;
 const direction = (value, threshold = 0) => Math.abs(value) > threshold ? Math.sign(value) : 0;
 
 const sessions = [
-  {time:'07:45', label:'Morning'},
+  {time:'08:15', label:'Morning'},
   {time:'15:15', label:'Afternoon'},
   {time:'18:00', label:'Evening'},
 ];

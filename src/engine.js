@@ -9,7 +9,7 @@ const round = value => Math.round(value * 100) / 100;
 const direction = (value, threshold = 0) => Math.abs(value) > threshold ? Math.sign(value) : 0;
 
 const sessions = [
-  {time:'07:45', label:'Morning'},
+  {time:'08:15', label:'Morning'},
   {time:'15:15', label:'Afternoon'},
   {time:'18:00', label:'Evening'},
 ];
