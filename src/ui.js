@@ -395,7 +395,9 @@ el('detail').addEventListener('close',() => {
 });
 async function refreshLedger() {
   try {
-    const response = await fetch(scheduledLedger || '/api/status', {cache:'no-cache'});
+    // Each refresh interval gets a fresh copy of the published ledger.
+    const url = scheduledLedger ? scheduledLedger + '?v=' + Math.floor(Date.now() / 30000) : '/api/status';
+    const response = await fetch(url, {cache:'no-cache'});
     if (scheduledLedger && response.status === 404 && !state.armed) {render(); return;}
     if (scheduledLedger && !response.ok) throw new Error('Ledger unavailable');
     const payload = await response.json();
