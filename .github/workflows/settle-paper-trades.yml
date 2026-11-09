@@ -1,0 +1,64 @@
+name: Settle SPY paper trades
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '10 9 * * 1-5'
+      timezone: Europe/Berlin
+    - cron: '10 16 * * 1-5'
+      timezone: Europe/Berlin
+    - cron: '55 18 * * 1-5'
+      timezone: Europe/Berlin
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spy-paper-ledger
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Calculate and publish virtual trading results
+        env:
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          MARKET_ACTIVE_FROM: '2026-11-09T15:15:00+01:00'
+        run: |
+          set -euo pipefail
+          if [[ -z "$ALPACA_KEY_ID" || -z "$ALPACA_SECRET_KEY" ]]; then
+            echo "::notice::Paper trading is waiting for both Alpaca repository secrets."
+            exit 0
+          fi
+
+          ledger="$RUNNER_TEMP/spy-ledger.json"
+          branch=paper-ledger
+          existing=false
+          if [[ -n "$(git ls-remote --heads origin "refs/heads/$branch")" ]]; then
+            git fetch --no-tags origin "refs/heads/$branch"
+            git show FETCH_HEAD:ledger.json > "$ledger"
+            existing=true
+          fi
+
+          node scripts/build.mjs
+          node scripts/run-paper-ledger.mjs "$ledger"
+          [[ -f "$ledger" ]] || exit 0
+
+          if [[ "$existing" == true ]]; then
+            git switch --detach FETCH_HEAD
+          else
+            git switch --orphan "$branch"
+          fi
+
+          cp "$ledger" ledger.json
+          git add -- ledger.json
+          git diff --cached --quiet && exit 0
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Settle SPY paper-trading windows'
+          git push origin "HEAD:refs/heads/$branch"

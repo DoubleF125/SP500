@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-offline="true">
+<html lang="en" data-offline="true" data-ledger="https://raw.githubusercontent.com/DoubleF125/SP500/paper-ledger/ledger.json">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -392,6 +392,7 @@ const pnlStyle = value => value > 0 ? 'positive' : value < 0 ? 'negative' : 'neu
 const balance = trades => ((state.mode === 'market' && state.error) || (state.mode === 'fiction' && !fictional.source)) ? '—' : usd.format(capital + sum(trades));
 const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + percent.format(value / capital) + '</span>';
 const offline = document.documentElement.dataset.offline === 'true';
+const scheduledLedger = document.documentElement.dataset.ledger;
 const state = {mode:'market',period:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
 const fictional = {runs:[],end:0,source:'',loading:false,error:'',selectedDay:'all'};
@@ -503,7 +504,9 @@ function render() {
       ? range + ' · Hypothetical trades using ' + (fictional.source === 'imported' ? 'your imported SPY prices' : 'historical SPY prices') +
         '. ' + fictional.runs.filter(run => run.status === 'skipped').length + ' windows skipped for missing prices.'
       : 'No historical prices available. Import a SPY minute-price CSV to run the backtest.')
-    : state.error || (state.configured
+    : state.error || (scheduledLedger
+      ? state.armed ? 'Paper results use recorded SPY minute bars and update after each window.' : 'Scheduled paper trading is waiting for its first data run.'
+      : state.configured
       ? state.armed ? 'Market results update as paper trades close.' : 'Market prices are connected. Paper trading is awaiting activation.'
       : 'No paper trades recorded. The live SPY feed is disconnected.');
   el('selection').textContent = selectionLabel();
@@ -613,7 +616,8 @@ function updatePlan() {
     if (decision.textContent !== message) decision.textContent = message;
     decision.className = '';
     el('plan-detail').textContent = offline || !state.configured
-      ? 'Waiting for a connected SPY feed. This is a scheduled window only.'
+      ? scheduledLedger ? 'This view lists the next scheduled window. Results are calculated after the window closes.'
+        : 'Waiting for a connected SPY feed. This is a scheduled window only.'
       : 'A move appears once there are enough recent SPY prices.';
     return;
   }
@@ -641,15 +645,16 @@ function renderDetails(index) {
   }).join('');
   const cards = trades.slice().reverse().map(trade => {
     const isUp = trade.side === 1;
-    const fill = (label,time,price) => '<div><dt>' + label + '</dt><dd>' + usd.format(price) + '<small>' +
+    const fill = (label,time,price) => '<div><dt>' + label + '</dt><dd>' + (Number.isFinite(price) ? usd.format(price) : '') + '<small>' +
       timestamp.format(time) + '</small></dd></div>';
     return '<li class="trade"><div class="trade-title"><b>' + slotLabel(trade.slot) + ' · Bet ' + (isUp?'up':'down') +
       '</b>' + returnLabel(trade.pnl) + '</div><dl>' +
       fill(isUp?'Bought':'Sold to open',trade.entryTime,trade.entry) +
       fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + '</dl>' +
       (trade.rules?.length ? '<p class="subtle">Rules used · ' + mixNames(trade.rules) + '</p>' : '') +
-      '<p class="subtle">' + trade.quantity.toFixed(5) + ' shares · ' + usd.format(trade.fees) +
-      ' in costs · ' + trade.feed.toUpperCase() + '</p></li>';
+      '<p class="subtle">' + (Number.isFinite(trade.quantity)
+        ? trade.quantity.toFixed(5) + ' shares · ' + usd.format(trade.fees) + ' in costs · ' : 'Calculated from historical minute bars · ') +
+      trade.feed.toUpperCase() + '</p></li>';
   }).join('');
   el('detail-body').innerHTML = '<p class="eyebrow">' + (type === 'Mix' ? 'STRATEGY MIX' : 'BASIC STRATEGY') + ' · ' +
     (state.mode === 'fiction' ? 'HISTORICAL BACKTEST' : 'MY RESULTS') + '</p><h2 id="detail-title">' + label +
@@ -689,7 +694,7 @@ for (const mode of ['market','fiction']) el(mode).addEventListener('click',() =>
     return;
   }
   render();
-  if (mode === 'market' && !offline) refreshLedger();
+  if (mode === 'market' && (!offline || scheduledLedger)) refreshLedger();
 });
 el('history-day').addEventListener('change',event => {
   fictional.selectedDay = event.target.value;
@@ -730,7 +735,9 @@ el('detail').addEventListener('close',() => {
 });
 async function refreshLedger() {
   try {
-    const response = await fetch('/api/status');
+    const response = await fetch(scheduledLedger || '/api/status', {cache:'no-cache'});
+    if (scheduledLedger && response.status === 404 && !state.armed) {render(); return;}
+    if (scheduledLedger && !response.ok) throw new Error('Ledger unavailable');
     const payload = await response.json();
     state.configured = Boolean(payload.configured);
     state.armed = Boolean(payload.armed);
@@ -759,9 +766,9 @@ async function refreshQuote() {
   setTimeout(refreshQuote,wait);
 }
 render();
-if (!offline) {
+if (!offline || scheduledLedger) {
   refreshLedger();
-  refreshQuote();
+  if (!offline) refreshQuote();
   setInterval(() => {if (state.mode === 'market' && !document.hidden) refreshLedger();},30000);
 }
 </script>

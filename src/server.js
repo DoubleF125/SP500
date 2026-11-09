@@ -106,3 +106,5 @@ export default {
     return api({error:'Route unavailable.'}, 404);
   },
 };
+
+export {day, hold, launch, minute, settlePrices, slotPrices, slotsBetween};

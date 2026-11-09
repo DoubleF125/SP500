@@ -17,3 +17,9 @@ The adaptive ensemble learns separate weights for the three slots from up to 30 
 The next-move preview recalculates once per second while strategy details are open. Market mode uses the latest reported SPY trade and recent minute bars. It waits if the feed is disconnected or data is stale. The preview makes no ledger changes.
 
 Historical backtest is an isolated rolling seven-day comparison. It uses historical SPY minute bars from the connected feed or from an imported CSV with timestamp, open, high, low, close, and volume columns. An unavailable feed displays no results until prices are imported. Each strategy starts at $1,000 for that comparison. Learning rules only see earlier windows within that week. No results are written to the paper ledger.
+
+## GitHub Pages paper results
+
+The GitHub Pages dashboard reads simulated results from the public `paper-ledger` branch. The workflow reads real historical SPY bars using GitHub Actions repository secrets named `ALPACA_KEY_ID` and `ALPACA_SECRET_KEY`. Use paper-account credentials. The public ledger contains strategy outcomes, never credentials or raw provider bars.
+
+On weekdays the workflow is scheduled at 09:10, 16:10 and 18:55 Europe/Berlin to allow the 30-minute windows and the market data delay to finish. It can also be started manually under Actions → Settle SPY paper trades → Run workflow. It backfills eligible windows from the last seven days, starting no earlier than 15:15 Berlin on November 9, 2026. It uses BOATS for the overnight slot and SIP for the other slots. Published results are historical simulations. The GitHub Pages build uses its existing embedded quote and CSV backtest.
