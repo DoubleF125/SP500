@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en" data-offline="true">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7ef">
+  <title>SPY Strategy Lab</title>
+  <meta name="description" content="Compare 17 paper-trading strategies at three set times.">
+  <style>:root {
+  color-scheme: light;
+  --bg:#f8f7ef; --white:#fffefa; --ink:#183c33; --soft:#53665d;
+  --line:#d8e1d6; --accent:#23614f; --mint:#e5f2e5;
+  --sun:#fff1d1; --green:#216347; --red:#982f35;
+  font:16px/1.5 system-ui,-apple-system,sans-serif;
+}
+* {box-sizing:border-box}
+[hidden] {display:none!important}
+body {margin:0;background:var(--bg);color:var(--ink)}
+button {font:inherit;cursor:pointer;color:inherit}
+button:focus-visible,summary:focus-visible,a:focus-visible {outline:3px solid #23614f;outline-offset:3px}
+h1,h2,h3,p {margin:0}
+.wrap {width:min(940px,calc(100% - 48px));margin:auto}
+.skip {position:absolute;left:12px;top:-100px;z-index:1;padding:8px;background:var(--white);color:var(--ink)}
+.skip:focus {top:8px}
+.top {border-bottom:1px solid var(--line);background:var(--white)}
+.top-inner,.board-head,.filters,.selection,.trade-title,.detail-total {display:flex;justify-content:space-between;align-items:center}
+.top-inner {min-height:68px;gap:12px}
+.brand {display:flex;align-items:center;gap:9px;font-weight:780;line-height:1.2}
+.logo {border-radius:10px;background:#ffce69;color:#463a25;width:34px;height:34px;display:grid;place-items:center;font-size:22px;flex:none}
+.mode,.pills {display:flex;gap:3px;background:#f0f3ec;border:1px solid var(--line);padding:3px;border-radius:10px;width:fit-content}
+.mode button,.pills button {border:0;background:transparent;border-radius:7px;padding:7px 11px;min-height:40px;font-size:.85rem;white-space:nowrap;color:var(--soft)}
+button[aria-pressed=true] {background:var(--accent);color:#fff;font-weight:680}
+.hero {position:relative;isolation:isolate;overflow:hidden;margin-top:22px;padding:26px 29px 29px;border-radius:21px;background:linear-gradient(104deg,#e2f2de 12%,#f1f5d8 65%,#fff0c7);border:1px solid #d4e4c9}
+.hero>div {position:relative;z-index:1}
+.eyebrow {color:var(--accent);margin-bottom:7px;font:750 .69rem/1.3 ui-monospace,monospace;letter-spacing:.07em}
+h1 {font-size:clamp(2.25rem,5.6vw,4.05rem);line-height:1.02;letter-spacing:-.06em;font-weight:790;max-width:650px}
+.intro {color:#3e594d;margin-top:10px;font-size:1rem;max-width:425px}
+.sunrise {position:absolute;bottom:14px;right:12px;width:27%;max-width:230px;opacity:.92}
+.status {display:flex;flex-wrap:wrap;gap:6px 15px;align-items:center;margin:12px 0 19px}
+.notice {padding:7px 11px;border:1px solid #ead9a7;border-radius:8px;color:#624b18;background:var(--sun);font-size:.82rem}
+.quote {display:flex;align-items:baseline;gap:6px;font-size:.82rem}
+.quote small {color:var(--soft)}
+.board {border:1px solid var(--line);border-radius:16px;background:var(--white);overflow:hidden;box-shadow:0 12px 28px #40543e0b}
+.board-head {padding:17px 20px 12px}
+h2 {font-size:1.55rem;letter-spacing:-.03em;line-height:1.15}
+.board-head p:last-child,.subtle,footer {color:var(--soft);font-size:.88rem}
+.board-head p:last-child {margin-top:5px}
+.filters {justify-content:flex-start;gap:10px 24px;flex-wrap:wrap;padding:0 20px 12px}
+.filter-label {display:block;font-size:.87rem;font-weight:720;margin-bottom:5px}
+.filter-label small,h3 small {margin-left:4px;color:var(--soft);font-size:.73rem;font-weight:500}
+.selection {gap:8px;padding:4px 20px 9px;color:var(--soft);font-size:.82rem;min-height:39px}
+.text-button {border:0;padding:4px 0;background:none;color:var(--accent);font-size:.82rem;text-decoration:underline;text-underline-offset:3px}
+.board {--rank-cols:31px minmax(0,1fr) 102px 108px 14px;--rank-gap:10px;--rank-pad:20px}
+.rank-header,.strategy-row {display:grid;grid-template-columns:var(--rank-cols);gap:var(--rank-gap);align-items:center;padding-inline:var(--rank-pad)}
+.rank-header {padding-block:7px;background:#edf3ea;color:#435b50;font-size:.78rem;font-weight:720}
+.rankings,.trade-list {list-style:none;margin:0;padding:0}
+.strategy-row {width:100%;text-align:left;padding-block:8px;border:0;border-top:1px solid #e7ece4;background:transparent;min-height:57px}
+.strategy-row:hover,.strategy-row:focus-visible {background:#eff7ee}
+.strategy-row:focus-visible {outline-offset:-3px}
+.rank {display:grid;place-items:center;height:26px;width:27px;background:#edf3ea;color:#426253;border-radius:7px;font-size:.73rem;font-weight:730}
+.strategy-label {line-height:1.25}
+.strategy-label b {font-size:.95rem}
+.strategy-label small,.result small,.detail-total small,.trade dd small,.detail-metrics small {display:block;color:var(--soft);font-size:.73rem;font-weight:450;margin-top:2px}
+.mix {display:inline-block;font-size:.66rem;font-weight:670;vertical-align:middle;margin-left:6px;padding:1px 6px;border-radius:8px;background:#f1ebfe;color:#5c437d}
+.result,.balance,.rank-header span:nth-child(3),.rank-header span:nth-child(4) {text-align:right}
+.balance {font-weight:720;font-variant-numeric:tabular-nums;white-space:nowrap}
+.detail-balance {text-align:right;border-left:1px solid var(--line);padding-left:9px}
+.result small,.num {white-space:nowrap}
+.num {font-variant-numeric:tabular-nums;font-weight:760}
+.open {color:var(--accent);font-size:1.38rem;text-align:right}
+.positive {color:var(--green)} .negative {color:var(--red)} .neutral {color:var(--soft)}
+footer {padding:17px 0 30px}
+footer p {margin:7px 0;max-width:660px}
+summary {cursor:pointer;width:fit-content;font-weight:660}
+dialog {width:min(690px,calc(100% - 20px));max-height:89vh;border:1px solid var(--line);border-radius:17px;padding:0;background:var(--white);color:var(--ink);box-shadow:0 14px 60px #19382942}
+dialog::backdrop {background:#19382d80}
+.detail-inner {padding:21px;position:relative}
+.detail-inner h2 {padding-right:36px;margin-bottom:6px}
+.close {position:absolute;right:13px;top:10px;background:#edf3ea;border:1px solid var(--line);border-radius:9px;min-width:42px;min-height:42px;font-size:1.3rem}
+.rules {margin:8px 0 0;padding-left:18px;color:var(--soft);font-size:.83rem}
+.detail-total {gap:8px;background:var(--mint);border-radius:10px;padding:10px 12px;margin:14px 0}
+.detail-total strong {font-size:1.3rem}
+h3 {font-size:.95rem;margin:11px 0 5px}
+.detail-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:13px}
+.detail-metrics div,.trade,.empty {background:#f7f9f3;padding:8px;border:1px solid var(--line);border-radius:9px}
+.detail-metrics div>span {display:block;color:var(--soft);font-size:.75rem}
+.detail-metrics b {display:block;margin-top:2px}
+.trade-list {display:grid;gap:6px}
+.trade {padding:9px 10px}
+.trade-title {gap:8px}
+.trade dl {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 12px;margin:6px 0}
+.trade dt {font-size:.75rem;color:var(--soft)}
+.trade dd {margin:0;font-size:.88rem;font-weight:700}
+.trade .subtle {font-size:.75rem}
+.empty,.extra {color:var(--soft);font-size:.85rem}
+.extra {margin-top:12px}
+.trace {width:100%;height:80px;display:block;color:var(--accent);background:var(--mint);border-radius:8px;margin:6px 0}
+@media(max-width:650px) {
+  .wrap {width:calc(100% - 24px)}
+  .top-inner {min-height:60px}
+  .mode button,.pills button {padding:5px 8px;font-size:.78rem}
+  .hero {margin-top:13px;padding:18px 14px}
+  .sunrise {display:none}
+  .board-head,.filters,.selection {padding-left:12px;padding-right:12px}
+  .board {--rank-cols:22px minmax(0,1fr) 62px 70px 8px;--rank-gap:5px;--rank-pad:9px}
+  .rank {width:22px}
+  .rank-header {font-size:.69rem}
+  .result,.balance {font-size:.82rem}
+  .detail-total strong {font-size:1rem}
+  .detail-inner {padding:15px}
+}
+@media(max-width:360px) {
+  .top-inner {gap:6px}
+  .brand {gap:5px;font-size:.87rem}
+  .logo {width:26px;height:26px;font-size:18px}
+  .mode button {padding-inline:5px}
+}
+.plan-card {margin:12px 0;padding:13px;background:var(--mint);border:1px solid #c9ddcc;border-radius:12px}
+.plan-head {display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap}
+.plan-head h3 {margin:0;font-size:1rem}
+.plan-source {color:var(--accent);font:750 .65rem/1.4 ui-monospace,monospace;letter-spacing:.04em}
+.plan-card>strong {display:block;font-size:1.42rem;line-height:1.2;margin:7px 0 2px}
+#plan-time {font-size:.86rem;font-weight:680}
+#plan-detail,.plan-note {color:var(--soft);font-size:.78rem;margin-top:3px}
+.plan-note {border-top:1px solid #c9ddcc;padding-top:6px}
+@media(max-width:480px) {
+  .top-inner {flex-wrap:wrap;gap:6px 12px;padding-block:8px}
+}
+.history-input {margin:0 20px 12px;padding:9px 12px;background:#edf3ea;border-radius:8px;font-size:.84rem}
+.history-input label {display:block;font-weight:700;margin-bottom:4px}
+.history-input input {max-width:100%}
+.history-input p {color:var(--soft);margin-top:4px}
+#history-day {font:inherit;font-size:.85rem;border:1px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink);padding:9px}
+</style>
+</head>
+<body>
+<a class="skip" href="#leaderboard">Skip to strategies</a>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand"><span class="logo" aria-hidden="true">✳</span> SPY Strategy Lab</div>
+    <div class="mode" role="group" aria-label="Data source">
+      <button type="button" id="market" aria-pressed="true">My results</button>
+      <button type="button" id="fiction" aria-pressed="false">Historical backtest</button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="hero" aria-labelledby="page-heading">
+    <div>
+      <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
+      <h1 id="page-heading">Find your trading rhythm.</h1>
+      <p class="intro">Compare 17 ways to trade SPY at the same three times of day, using virtual money.</p>
+    </div>
+    <svg class="sunrise" viewBox="0 0 278 152" fill="none" aria-hidden="true">
+      <path d="M72 117a67 67 0 0 1 134 0" fill="#ffce69"/>
+      <path d="M91 117a48 48 0 0 1 96 0" fill="#ffae60"/>
+      <path d="M48 118h182m-157 13h132m-108 13h84" stroke="#315e54" stroke-width="2" stroke-linecap="round"/>
+      <path d="M139 32V14m-61 42-13-13m135 13 13-13M56 91H40m182 0h16" stroke="#765116" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </section>
+  <div class="status">
+    <p id="notice" class="notice" role="status"></p>
+    <aside id="quote" class="quote" aria-label="SPY market quote" hidden><span>SPY price</span> <strong id="price">—</strong><small id="quote-note"></small></aside>
+  </div>
+  <section class="board" aria-labelledby="leaderboard">
+    <div class="board-head">
+      <div>
+        <p class="eyebrow">12 BASIC STRATEGIES · 5 MIXES</p>
+        <h2 id="leaderboard" tabindex="-1">Compare strategies</h2>
+        <p>Profit or loss is a percentage of the starting $1,000 and follows your filters. Balance shows your total in dollars.</p>
+      </div>
+    </div>
+    <div id="history-input" class="history-input" hidden>
+      <label for="history-file">Import SPY minute prices (CSV)</label>
+      <input id="history-file" type="file" accept=".csv,text/csv" aria-describedby="history-format">
+      <p id="history-format">Use timestamp, open, high, low, close, volume columns. Include UTC or a time-zone offset in each timestamp.</p>
+    </div>
+    <div class="filters">
+      <div id="history-day-filter" class="filter" hidden>
+        <label for="history-day" class="filter-label">Which day? <small>Berlin date</small></label>
+        <select id="history-day"></select>
+      </div>
+      <div class="filter" id="period-filter">
+        <span id="period-label" class="filter-label">How far back?</span>
+        <div class="pills" id="period" role="group" aria-labelledby="period-label">
+          <button type="button" data-value="1" aria-pressed="false">1 day</button>
+          <button type="button" data-value="7" aria-pressed="false">1 week</button>
+          <button type="button" data-value="all" aria-pressed="true">Since start</button>
+        </div>
+      </div>
+      <div class="filter">
+        <span id="session-label" class="filter-label">Which time? <small>Berlin time</small></span>
+        <div class="pills" id="session" role="group" aria-labelledby="session-label">
+          <button type="button" data-value="all" aria-pressed="true">All times</button>
+          <button type="button" data-value="07:45" aria-pressed="false">07:45</button>
+          <button type="button" data-value="15:15" aria-pressed="false">15:15</button>
+          <button type="button" data-value="18:00" aria-pressed="false">18:00</button>
+        </div>
+      </div>
+    </div>
+    <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
+    <div class="rank-header" aria-hidden="true"><span></span><span>Strategy</span><span>Return %</span><span>Balance</span><span></span></div>
+    <ol id="rankings" class="rankings" aria-label="Ranked strategies"></ol>
+  </section>
+  <footer>
+    <details>
+      <summary>How paper trading works</summary>
+      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to three trades each weekday at 07:45, 15:15, and 18:00 Berlin time. Each trade lasts about 30 minutes.</p>
+      <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
+    </details>
+  </footer>
+</main>
+<dialog id="detail" aria-labelledby="detail-title">
+  <div class="detail-inner">
+    <button type="button" id="close-detail" class="close" aria-label="Close strategy details" autofocus>×</button>
+    <div id="detail-body"></div>
+  </div>
+</dialog>
+<script>const minute = 60000;
+const day = 1440 * minute;
+const capital = 1000;
+const hold = 30;
+const costRate = 0.0003;
+const launch = Date.parse('2026-11-09T12:58:40Z');
+const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
+const round = value => Math.round(value * 100) / 100;
+const direction = (value, threshold = 0) => Math.abs(value) > threshold ? Math.sign(value) : 0;
+
+const sessions = [
+  {time:'07:45', label:'Morning'},
+  {time:'15:15', label:'Afternoon'},
+  {time:'18:00', label:'Evening'},
+];
+const tactics = [
+  ['long','Always Up','Basic','Bets on SPY going up at each available time.'],
+  ['short','Always Down','Basic','Bets on SPY going down at each available time.'],
+  ['momentum','Follow the Move','Basic','Follows the latest five-minute move once it is larger than 0.03%.'],
+  ['fade','Bet on a Rebound','Basic','Bets that a five-minute move larger than 0.05% will reverse.'],
+  ['cross','Follow the Trend','Basic','Follows the direction indicated by the last 5 and 20 prices.'],
+  ['range','Break Out of the Range','Basic','Follows price when it breaks above or below its recent ten-bar range.'],
+  ['vwap','Back to the Average','Basic','Looks for a return toward the recent average price, giving busier minutes more weight.'],
+  ['rsi','When the Move Looks Stretched','Basic','Looks for a reversal when most of the last 14 price changes go one way.'],
+  ['volume','Follow a Busy Move','Basic','Follows a five-minute move when the most recent minute was unusually busy.'],
+  ['volatility','Follow a Fast Move','Basic','Follows a five-minute move when prices are moving faster than usual.'],
+  ['vote','Group Vote','Basic','Trades when at least three more technical rules favor one direction than the other.'],
+  ['adaptive','Learning Vote','Basic','Gives more weight to rules that worked in up to 30 earlier windows at the same time of day.'],
+];
+const baseCount = tactics.length;
+const playbook = [6, 8, 2];
+const consensus = [[3,6,7], [2,5,8], [2,4,9]];
+const confirmed = [[6,11], [5,8], [4,10]];
+const mixNames = indexes => indexes.map(index => tactics[index][1]).join(' + ');
+const timetable = groups => groups.map((indexes, index) => sessions[index].time + ' · ' + mixNames(indexes));
+tactics.push(
+  ['playbook','One Rule per Time','Mix','Uses a different rule at each of the three times.',timetable(playbook.map(index => [index]))],
+  ['consensus','Time-of-Day Vote','Mix','Changes the voting group by time of day. Two of three rules must agree.',timetable(consensus)],
+  ['confirmed','Double Check','Mix','Uses two rules at each time. Both must point in the same direction.',timetable(confirmed)],
+  ['leader','Recent Winner','Mix','Picks the most profitable basic strategy for that time from up to 20 earlier windows. Requires at least five prior trades and positive net results.', ['Uses One Rule per Time until a qualifying winner is available.']],
+  ['top-three','Top Three Vote','Mix','Lets the three strongest qualifying basic strategies vote at each time. Two must agree.', ['Ranks by net results across up to 20 earlier windows for the same time, with at least five prior trades per rule. Uses the Time-of-Day Vote when fewer than three rules qualify.']],
+);
+const berlin = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+const ny = new Intl.DateTimeFormat('en-GB', {timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23'});
+const slotLabel = time => berlin.format(time);
+const feedAt = time => {
+  const hour = Number(ny.format(time).slice(0,2));
+  return hour < 4 || hour >= 20 ? 'boats' : 'sip';
+};
+function slotsBetween(start, end) {
+  const times = [];
+  for (let t = Math.ceil(start / (15 * minute)) * 15 * minute; t <= end; t += 15 * minute) {
+    const weekday = new Date(t).getUTCDay();
+    if (weekday > 0 && weekday < 6 && sessions.some(session => session.time === slotLabel(t))) times.push(t);
+  }
+  return times;
+}
+function signals(bars, history, slot) {
+  const close = bars.map(bar => bar.c);
+  const last = close.at(-1);
+  const momentum = last / close.at(-6) - 1;
+  const window = bars.slice(-11,-1);
+  const volume = bars.reduce((sum, bar) => sum + bar.v, 0);
+  const vwap = bars.reduce((sum, bar) => sum + (bar.vw ?? (bar.h + bar.l + bar.c) / 3) * bar.v, 0) / volume;
+  const changes = close.slice(1).map((price, i) => price / close[i] - 1);
+  const rsiChanges = changes.slice(-14);
+  const gains = mean(rsiChanges.map(change => Math.max(0, change)));
+  const losses = mean(rsiChanges.map(change => Math.max(0, -change)));
+  const rsi = gains + losses ? 100 * gains / (gains + losses) : 50;
+  const energy = values => Math.sqrt(mean(values.map(value => value ** 2)));
+  const technical = [
+    direction(momentum, 0.0003), direction(-momentum, 0.0005),
+    direction(mean(close.slice(-5)) / mean(close.slice(-20)) - 1, 0.0002),
+    Number(last > Math.max(...window.map(bar => bar.h))) - Number(last < Math.min(...window.map(bar => bar.l))),
+    direction(1 - last / vwap, 0.0008),
+    Number(rsi < 30) - Number(rsi > 70),
+    bars.at(-1).v > 1.5 * mean(bars.slice(-21,-1).map(bar => bar.v)) ? direction(momentum, 0.0003) : 0,
+    energy(changes.slice(-5)) > 1.2 * energy(changes.slice(0,-5)) ? direction(momentum, 0.0003) : 0,
+  ];
+  const sessionIndex = sessions.findIndex(session => session.time === slotLabel(slot));
+  const past = history.filter(run => run.status === 'settled' && run.trades[0]?.exitTime < slot && slotLabel(run.slot) === slotLabel(slot))
+    .sort((a,b) => a.slot - b.slot).slice(-30);
+  const weights = technical.map((_, i) => Math.exp(30 * past.reduce((score, run) => score + run.trades[i+2].pnl / capital, 0) / Math.sqrt(Math.max(1,past.length))));
+  const weightedVote = technical.reduce((score, signal, i) => score + signal * weights[i], 0) / weights.reduce((sum, weight) => sum + weight, 0);
+  const directions = [1,-1,...technical,direction(technical.reduce((sum, s) => sum+s, 0),2),direction(weightedVote,0.19)];
+  const recent = past.slice(-20);
+  const ranked = directions.map((_, index) => {
+    const trades = recent.map(run => run.trades[index]).filter(trade => trade?.side);
+    return {index, count:trades.length, pnl:round(trades.reduce((total, trade) => total + trade.pnl, 0))};
+  }).filter(rule => rule.count >= 5 && rule.pnl > 0).sort((a,b) => b.pnl - a.pnl || a.index - b.index);
+  const groups = [
+    [playbook[sessionIndex]], consensus[sessionIndex], confirmed[sessionIndex],
+    [ranked[0]?.index ?? playbook[sessionIndex]],
+    ranked.length >= 3 ? ranked.slice(0,3).map(rule => rule.index) : consensus[sessionIndex],
+  ];
+  const mixed = groups.map(group => direction(group.reduce((total, index) => total + directions[index], 0), group.length === 1 ? 0 : 1));
+  return {directions:[...directions,...mixed], groups, past:past.length, weightedVote};
+}
+
+function settle(slot, prior, entry, exit, history, feed) {
+  const evaluation = signals(prior, history, slot);
+  return {
+    slot, status:'settled', feed,
+    trainingSamples:evaluation.past, ensembleScore:evaluation.weightedVote,
+    trades:evaluation.directions.map((side,index) => {
+      const rules = evaluation.groups[index-baseCount];
+      if (!side) return {side, pnl:0, rules};
+      const quantity = capital / entry.o;
+      const fees = quantity * (entry.o + exit.o) * costRate;
+      return {side, rules, quantity, fees, entry:entry.o, exit:exit.o, entryTime:Date.parse(entry.t), exitTime:Date.parse(exit.t),
+        pnl:round(side * quantity * (exit.o - entry.o) - fees)};
+    }),
+  };
+}
+
+function pricesForSlot(bars, slot, feed) {
+  const end = slot + (hold + 2) * minute;
+  const prior = bars.filter(bar => {
+    const time = Date.parse(bar.t);
+    return time >= slot - 60 * minute && time < slot;
+  }).slice(-30);
+  const entry = bars.find(bar => Date.parse(bar.t) === slot);
+  const exit = bars.find(bar => Date.parse(bar.t) >= slot + hold * minute && Date.parse(bar.t) < end);
+  return {slot,feed,prior,entry,exit,end,complete:Boolean(entry && exit && prior.length >= 21)};
+}
+function settlePrices(prices, history) {
+  const {slot,feed,prior,entry,exit,complete} = prices;
+  return complete ? settle(slot, prior, entry, exit, history, feed)
+    : {slot,feed,status:'skipped',reason:'Missing entry, exit, or sufficient signal bars for this session.'};
+}
+
+const el = id => document.getElementById(id);
+const usd = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'});
+const percent = new Intl.NumberFormat('en-US', {style:'percent',signDisplay:'exceptZero',minimumFractionDigits:2,maximumFractionDigits:3});
+const timestamp = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',dateStyle:'medium',timeStyle:'medium'});
+const sum = trades => round(trades.reduce((total,trade) => total + trade.pnl,0));
+const pnlStyle = value => value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
+const balance = trades => ((state.mode === 'market' && state.error) || (state.mode === 'fiction' && !fictional.source)) ? '—' : usd.format(capital + sum(trades));
+const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + percent.format(value / capital) + '</span>';
+const offline = document.documentElement.dataset.offline === 'true';
+const state = {mode:'market',period:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
+
+const fictional = {runs:[],end:0,source:'',loading:false,error:'',selectedDay:'all'};
+const shortDate = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',day:'numeric',month:'short'});
+const berlinDate = new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'});
+function completeRuns(runs, now) {
+  return runs.filter(run => run.slot <= now && (run.status !== 'settled' || run.trades[0]?.exitTime <= now));
+}
+async function refreshFictional() {
+  if (fictional.loading) return;
+  if (fictional.source === 'imported') {render();return;}
+  fictional.end = Date.now();
+  if (offline) {render();return;}
+  fictional.error = '';
+  fictional.loading = true;
+  render();
+  try {
+    const response = await fetch('/api/backtest',{signal:AbortSignal.timeout(30000)});
+    if (!response.ok) return;
+    const data = await response.json();
+    if (fictional.source === 'imported') return;
+    fictional.end = Math.min(data.end,Date.now());
+    fictional.runs = completeRuns(data.runs,fictional.end).filter(run => run.slot >= fictional.end - 7 * day);
+    fictional.source = 'historical';
+  } catch {
+    // The interface reports an unavailable feed until historical data can be loaded.
+  } finally {
+    fictional.loading = false;
+    if (state.mode === 'fiction') {
+      render();
+      if (state.detail !== null) renderDetails(state.detail);
+    }
+  }
+}
+
+function importPrices(csv, now) {
+  const lines = csv.trim().split(/\r?\n/);
+  const cells = line => line.split(',').map(value => value.trim().replace(/^"|"$/g,''));
+  const header = cells(lines.shift()).map(value => value.toLowerCase());
+  const fields = ['timestamp','open','high','low','close','volume'].map(field => header.indexOf(field));
+  if (fields.includes(-1)) throw new Error('The CSV needs timestamp, open, high, low, close and volume columns.');
+  const symbol = header.indexOf('symbol');
+  const bars = [];
+  const seen = new Set();
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row = cells(line);
+    if (symbol >= 0 && row[symbol]?.toUpperCase() !== 'SPY') continue;
+    const [stamp, ...prices] = fields.map(i => row[i]);
+    const time = Date.parse(stamp);
+    const [o,h,l,c,v] = prices.map(Number);
+    if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(stamp) || !Number.isFinite(time) || time % minute ||
+        prices.some(value => !value) || ![o,h,l,c,v].every(Number.isFinite) ||
+        Math.min(o,h,l,c) <= 0 || h < Math.max(o,c,l) || l > Math.min(o,c,h) || v < 0) {
+      throw new Error('A row has an invalid minute timestamp, price, or volume.');
+    }
+    if (time >= now || time < now - 7 * day - 60 * minute) continue;
+    if (seen.has(time)) throw new Error('Use only one SPY price row per minute.');
+    seen.add(time);
+    bars.push({t:new Date(time).toISOString(),o,h,l,c,v});
+  }
+  if (!bars.length) throw new Error('No past SPY minute prices found for the last seven days.');
+  bars.sort((a,b) => a.t.localeCompare(b.t));
+  const runs = [];
+  for (const slot of slotsBetween(now - 7 * day,now - (hold + 2) * minute)) {
+    runs.push(settlePrices(pricesForSlot(bars,slot,'CSV'),runs));
+  }
+  return runs;
+}
+
+function scoped(applyPeriod = true, applySession = true) {
+  const replay = state.mode === 'fiction';
+  const now = Date.now();
+  const runs = completeRuns(replay ? fictional.runs : state.runs,now);
+  const start = !replay && applyPeriod && state.period !== 'all' ? now - Number(state.period) * day : 0;
+  return runs.filter(run => (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
+    (!replay || !applyPeriod || fictional.selectedDay === 'all' || berlinDate.format(run.slot) === fictional.selectedDay) &&
+    (!applySession || state.session === 'all' || slotLabel(run.slot) === state.session));
+}
+function tradesFor(runs, index) {
+  return runs.filter(run => run.status === 'settled' && run.trades[index]?.side).map(run => ({...run.trades[index],slot:run.slot,feed:run.feed,samples:run.trainingSamples,score:run.ensembleScore}));
+}
+const periodNames = {'1':'Last day','7':'Last week',all:'Since Nov 9, 2026'};
+const timeName = time => sessions.find(session => session.time === time)?.label;
+const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
+function selectionLabel() {
+  const time = state.session === 'all' ? 'All three times' : timeName(state.session) + ' · ' + state.session;
+  if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
+  return periodNames[state.period] + ' · ' + time;
+}
+function render() {
+  const replay = state.mode === 'fiction';
+  for (const [id,active] of [['market',!replay],['fiction',replay]]) {
+    el(id).setAttribute('aria-pressed',String(active));
+  }
+  el('period-filter').hidden = replay;
+  el('history-input').hidden = !replay;
+  el('history-day-filter').hidden = !replay || !fictional.runs.length;
+  if (replay) {
+    const days = [...new Set(fictional.runs.map(run => berlinDate.format(run.slot)))];
+    const picker = el('history-day');
+    picker.innerHTML = '<option value="all">All days</option>' + days.map(date => '<option>' + date + '</option>').join('');
+    if (!days.includes(fictional.selectedDay)) fictional.selectedDay = 'all';
+    picker.value = fictional.selectedDay;
+  }
+  const range = replay ? shortDate.format(fictional.end - 7 * day) + '–' + shortDate.format(fictional.end) : '';
+  el('notice').textContent = replay
+    ? fictional.error || (fictional.loading ? 'Loading historical SPY prices…' : fictional.source
+      ? range + ' · Hypothetical trades using ' + (fictional.source === 'imported' ? 'your imported SPY prices' : 'historical SPY prices') +
+        '. ' + fictional.runs.filter(run => run.status === 'skipped').length + ' windows skipped for missing prices.'
+      : 'No historical prices available. Import a SPY minute-price CSV to run the backtest.')
+    : state.error || (state.configured
+      ? state.armed ? 'Market results update as paper trades close.' : 'Market prices are connected. Paper trading is awaiting activation.'
+      : 'No paper trades recorded. The live SPY feed is disconnected.');
+  el('selection').textContent = selectionLabel();
+  el('reset').hidden = (replay ? fictional.selectedDay === 'all' : state.period === 'all') && state.session === 'all';
+  for (const type of ['period','session']) {
+    for (const button of el(type).querySelectorAll('button')) {
+      button.setAttribute('aria-pressed',String(state[type] === button.dataset.value));
+    }
+  }
+  const selected = scoped();
+  const all = scoped(false,false);
+  const rankings = tactics.map((tactic,index) => {
+    const trades = tradesFor(selected,index);
+    const total = tradesFor(all,index);
+    return {tactic,index,trades,pnl:sum(trades),total};
+  }).sort((a,b) => Number(Boolean(b.trades.length)) - Number(Boolean(a.trades.length)) || b.pnl - a.pnl || a.index - b.index);
+  const focusedIndex = document.activeElement?.closest('#rankings [data-id]')?.dataset.id;
+  let rank = 0;
+  el('rankings').innerHTML = rankings.map((row,i) => {
+    if (!i || row.pnl !== rankings[i-1].pnl) rank = i+1;
+    const [, label, type] = row.tactic;
+    const hasResult = row.trades.length > 0;
+    const fresh = state.mode === 'market' && !state.error && !row.total.length;
+    const summary = hasResult ? countTrades(row.trades.length) : fresh ? '0 completed trades' : 'No trades in this view';
+    return '<li><button type="button" class="strategy-row" data-id="' + row.index + '"><span class="rank" aria-hidden="true">' +
+      (hasResult ? String(rank).padStart(2,'0') : '·') + '</span><span class="strategy-label"><b>' + label + '</b>' +
+      (type === 'Mix' ? '<span class="mix">Mix</span>' : '') + '<small>' + summary + '</small></span><span class="result">' +
+      (hasResult || fresh ? returnLabel(row.pnl) : '<span class="neutral">—</span>') +
+      '</span><span class="balance" aria-label="Account balance ' + balance(row.total) + '">' + balance(row.total) +
+      '</span><span class="open" aria-hidden="true">›</span></button></li>';
+  }).join('');
+  if (focusedIndex !== undefined) el('rankings').querySelector('[data-id="' + focusedIndex + '"]')?.focus({preventScroll:true});
+  renderQuote();
+}
+function renderQuote() {
+  const quote = state.quote;
+  el('quote').hidden = state.mode !== 'market' || !state.configured;
+  el('price').textContent = quote ? usd.format(quote.price) : '—';
+  el('quote-note').textContent = state.quoteError || (quote
+    ? 'Last reported ' + timestamp.format(Date.parse(quote.time)) + ' Berlin'
+    : 'Waiting for a market price');
+}
+function curve(trades) {
+  if (!trades.length) return '';
+  const points = [0];
+  for (const trade of trades) points.push(points.at(-1)+trade.pnl);
+  const low = Math.min(...points);
+  const span = Math.max(0.01,Math.max(...points)-low);
+  const coords = points.map((value,i) => (10 + 580*i/(points.length-1)).toFixed(2) + ',' + (84-68*(value-low)/span).toFixed(2));
+  return '<svg class="trace" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="Cumulative realized paper profit and loss"><polyline points="' + coords.join(' ') + '" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+}
+const plan = {timer:null, input:null, request:null, retryAt:0};
+const nextSlot = now => slotsBetween(now + 1, now + 5 * day)[0];
+
+async function refreshPlanBars(now, feed) {
+  if (plan.request || now < plan.retryAt) return;
+  if (plan.input?.feed === feed && now - plan.input.received < 15000) return;
+  plan.retryAt = now + 5000;
+  plan.request = (async () => {
+    try {
+      const response = await fetch('/api/plan-bars', {signal:AbortSignal.timeout(8000)});
+      if (!response.ok) return;
+      const data = await response.json();
+      plan.input = {...data,received:Date.now()};
+    } catch {
+      // Freshness checks below hide the estimate if the input cannot be refreshed.
+    } finally {
+      plan.request = null;
+    }
+  })();
+}
+
+function marketPlan(now, slot) {
+  if (!state.configured || offline) return null;
+  const feed = feedAt(now);
+  refreshPlanBars(now,feed);
+  const input = plan.input;
+  const quote = state.quote;
+  const observed = Date.parse(quote?.time);
+  if (!input || input.feed !== feed || now - input.received > 45000 || !quote || quote.feed !== feed ||
+      !Number.isFinite(observed) || observed > now || now - observed > 60000 || state.quoteError) return null;
+  const price = quote.price;
+  const bucket = Math.floor(observed / minute) * minute;
+  const bars = input.bars.filter(bar => Date.parse(bar.t) <= bucket).slice(-30);
+  const last = bars.at(-1);
+  const lastTime = Date.parse(last?.t);
+  if (bars.length < 21 || !Number.isFinite(lastTime) || bucket - lastTime > 5 * minute) return null;
+  if (bucket === lastTime) {
+    bars[bars.length-1] = {...last,c:price,h:Math.max(last.h,price),l:Math.min(last.l,price)};
+  } else {
+    bars.push({t:new Date(bucket).toISOString(),o:price,h:price,l:price,c:price,v:0});
+  }
+  return {slot,bars:bars.slice(-30),history:state.runs,price,observed};
+}
+
+function updatePlan() {
+  if (state.detail === null || state.mode === 'fiction' || document.hidden) return;
+  const now = Date.now();
+  const slot = nextSlot(now);
+  const estimate = marketPlan(now,slot);
+  const when = estimate?.slot ?? slot;
+  el('plan-time').textContent = timestamp.format(when) + ' Berlin time';
+  el('plan-source').textContent = 'MARKET PREVIEW · CHECKS EVERY SECOND';
+  const decision = el('plan-decision');
+  if (!estimate) {
+    const message = state.configured && !offline ? 'Waiting for fresh prices' : 'Market feed disconnected';
+    if (decision.textContent !== message) decision.textContent = message;
+    decision.className = '';
+    el('plan-detail').textContent = offline || !state.configured
+      ? 'Waiting for a connected SPY feed. This is a scheduled window only.'
+      : 'A move appears once there are enough recent SPY prices.';
+    return;
+  }
+  const evaluation = signals(estimate.bars,estimate.history,estimate.slot);
+  const side = evaluation.directions[state.detail];
+  const message = side === 1 ? 'Bet up' : side === -1 ? 'Bet down' : 'Sit out';
+  if (decision.textContent !== message) decision.textContent = message;
+  decision.className = side === 1 ? 'positive' : side === -1 ? 'negative' : 'neutral';
+  const rules = evaluation.groups[state.detail - baseCount];
+  el('plan-detail').textContent = 'Last reported price ' + usd.format(estimate.price) +
+    ' · ' + timestamp.format(estimate.observed) + ' Berlin' + (rules ? ' · ' + mixNames(rules) : '');
+}
+
+function renderDetails(index) {
+  const [,label,type,description,schedule] = tactics[index];
+  const runs = scoped();
+  const trades = tradesFor(runs,index);
+  const byTime = tradesFor(scoped(true,false),index);
+  const noSignal = runs.filter(run => run.status === 'settled' && run.trades[index]?.side === 0).length;
+  const skipped = runs.filter(run => run.status === 'skipped').length;
+  const slots = sessions.map(session => {
+    const atTime = byTime.filter(trade => slotLabel(trade.slot) === session.time);
+    return '<div><span>' + session.label + ' · ' + session.time + '</span><b>' +
+      (atTime.length ? returnLabel(sum(atTime)) : '—') + '</b><small>' + countTrades(atTime.length) + '</small></div>';
+  }).join('');
+  const cards = trades.slice().reverse().map(trade => {
+    const isUp = trade.side === 1;
+    const fill = (label,time,price) => '<div><dt>' + label + '</dt><dd>' + usd.format(price) + '<small>' +
+      timestamp.format(time) + '</small></dd></div>';
+    return '<li class="trade"><div class="trade-title"><b>' + slotLabel(trade.slot) + ' · Bet ' + (isUp?'up':'down') +
+      '</b>' + returnLabel(trade.pnl) + '</div><dl>' +
+      fill(isUp?'Bought':'Sold to open',trade.entryTime,trade.entry) +
+      fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + '</dl>' +
+      (trade.rules?.length ? '<p class="subtle">Rules used · ' + mixNames(trade.rules) + '</p>' : '') +
+      '<p class="subtle">' + trade.quantity.toFixed(5) + ' shares · ' + usd.format(trade.fees) +
+      ' in costs · ' + trade.feed.toUpperCase() + '</p></li>';
+  }).join('');
+  el('detail-body').innerHTML = '<p class="eyebrow">' + (type === 'Mix' ? 'STRATEGY MIX' : 'BASIC STRATEGY') + ' · ' +
+    (state.mode === 'fiction' ? 'HISTORICAL BACKTEST' : 'MY RESULTS') + '</p><h2 id="detail-title">' + label +
+    '</h2>' + (state.mode === 'fiction' ? '' : '<section class="plan-card" aria-labelledby="plan-heading"><div class="plan-head"><h3 id="plan-heading">Next planned move</h3>' +
+    '<span id="plan-source" class="plan-source"></span></div><strong id="plan-decision" role="status"></strong><p id="plan-time"></p>' +
+    '<p id="plan-detail"></p><p class="plan-note">Preview only. The strategy decides at the scheduled time using the data available then.</p></section>') +
+    '<p class="subtle">' + description + '</p>' + (schedule ? '<ul class="rules"><li>' + schedule.join('</li><li>') + '</li></ul>' : '') +
+    '<div class="detail-total"><div><b>Profit or loss (%)</b><small>' + selectionLabel() + '</small></div><strong>' +
+    (trades.length ? returnLabel(sum(trades)) : '—') + '</strong><div class="detail-balance"><small>Account balance</small><strong>' +
+    balance(tradesFor(scoped(false,false),index)) + '</strong></div></div>' +
+    '<h3>Compare times <small>In this period</small></h3><div class="detail-metrics">' + slots + '</div>' +
+    '<h3>Trade history <small>Berlin time</small></h3>' +
+    (cards ? '<ol class="trade-list">' + cards + '</ol>' : '<p class="empty">No completed trades in this view.</p>') +
+    '<details class="extra"><summary>More about these results</summary>' + curve(trades) + '<p class="subtle">' +
+    noSignal + ' windows had no signal. ' + skipped + ' windows had too little market data.</p></details>';
+}
+for (const type of ['period','session']) {
+  el(type).addEventListener('click',event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    state[type] = button.dataset.value;
+    render();
+  });
+}
+el('reset').addEventListener('click',() => {
+  if (state.mode === 'fiction') fictional.selectedDay = 'all';
+  else state.period = 'all';
+  state.session = 'all';
+  render();
+  el(state.mode === 'fiction' ? 'session' : 'period').querySelector('[data-value="all"]').focus();
+});
+for (const mode of ['market','fiction']) el(mode).addEventListener('click',() => {
+  state.mode = mode;
+  if (mode === 'fiction') {
+    if (fictional.loading) render();
+    else refreshFictional();
+    return;
+  }
+  render();
+  if (mode === 'market' && !offline) refreshLedger();
+});
+el('history-day').addEventListener('change',event => {
+  fictional.selectedDay = event.target.value;
+  render();
+});
+el('history-file').addEventListener('change',async event => {
+  const input = event.target;
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 5_000_000) throw new Error('Choose a CSV smaller than 5 MB.');
+    const csv = await file.text();
+    const end = Date.now();
+    const runs = importPrices(csv,end);
+    Object.assign(fictional,{runs,end,source:'imported',error:'',selectedDay:'all'});
+  } catch (error) {
+    fictional.error = error.message;
+  } finally {
+    input.value = '';
+    render();
+  }
+});
+el('rankings').addEventListener('click',event => {
+  const button = event.target.closest('[data-id]');
+  if (!button) return;
+  state.detail = Number(button.dataset.id);
+  renderDetails(state.detail);
+  el('detail').showModal();
+  updatePlan();
+  if (state.mode !== 'fiction') plan.timer = setInterval(updatePlan,1000);
+});
+el('close-detail').addEventListener('click',() => el('detail').close());
+el('detail').addEventListener('close',() => {
+  clearInterval(plan.timer);
+  plan.timer = null;
+  el('rankings').querySelector('[data-id="' + state.detail + '"]')?.focus({preventScroll:true});
+  state.detail = null;
+});
+async function refreshLedger() {
+  try {
+    const response = await fetch('/api/status');
+    const payload = await response.json();
+    state.configured = Boolean(payload.configured);
+    state.armed = Boolean(payload.armed);
+    state.error = payload.error || null;
+    state.runs = payload.runs || [];
+  } catch {
+    state.error = 'The market ledger could not be reached.';
+  }
+  render();
+}
+async function refreshQuote() {
+  let wait = 1000;
+  if (state.mode === 'market' && state.configured && !document.hidden) {
+    try {
+      const response = await fetch('/api/quote');
+      const payload = await response.json();
+      state.quoteError = payload.error || null;
+      if (response.ok) state.quote = payload;
+      else wait = 15000;
+    } catch {
+      state.quoteError = 'Quote refresh failed.';
+      wait = 15000;
+    }
+    renderQuote();
+  }
+  setTimeout(refreshQuote,wait);
+}
+render();
+if (!offline) {
+  refreshLedger();
+  refreshQuote();
+  setInterval(() => {if (state.mode === 'market' && !document.hidden) refreshLedger();},30000);
+}
+</script>
+</body>
+</html>
