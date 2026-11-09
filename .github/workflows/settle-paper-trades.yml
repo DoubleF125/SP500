@@ -11,6 +11,8 @@ on:
       timezone: America/New_York
     - cron: '10 16 * * 1-5'
       timezone: America/New_York
+    - cron: '25 16 * * 1-5'
+      timezone: America/New_York
 
 permissions:
   contents: write

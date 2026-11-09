@@ -155,6 +155,12 @@ h3 {font-size:.95rem;margin:11px 0 5px}
 .paper-run-controls {display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:0 20px 10px;font-size:.82rem;color:var(--soft)}
 .reset-paper-run {border:1px solid var(--line);border-radius:7px;padding:7px 11px;background:var(--mint);color:var(--accent);font-weight:700}
 @media(max-width:540px) {.paper-run-controls {padding-inline:12px}}
+
+.benchmark {margin-bottom:14px;padding:17px 20px}
+.benchmark h2 {margin:0}
+.benchmark dl {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:.65rem 1rem;margin:12px 0}
+.benchmark dt,.benchmark p {font-size:.84rem;color:var(--soft)}
+.benchmark dd {margin:0;font-size:1.15rem;font-weight:700}
 </style>
   <style>
     .market-overview { margin-top:22px; padding:18px 20px 12px; border:1px solid var(--line); border-radius:16px; background:var(--white); }
@@ -233,6 +239,18 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     <p id="notice" class="notice" role="status"></p>
     <aside id="quote" class="quote" aria-label="SPY market quote" hidden><span>SPY price</span> <strong id="price">—</strong><small id="quote-note"></small></aside>
   </div>
+  <section id="benchmark" class="board benchmark" aria-labelledby="benchmark-heading">
+    <h2 id="benchmark-heading">Benchmark</h2>
+    <p>$1,000 in SPY · Buy and hold · USD · Updates after each U.S. market close</p>
+    <dl>
+      <div><dt>Value</dt><dd id="benchmark-balance">—</dd></div>
+      <div><dt>Total gain or loss</dt><dd id="benchmark-total">—</dd></div>
+      <div><dt>Latest session</dt><dd id="benchmark-day">—</dd></div>
+    </dl>
+    <p id="benchmark-status">Loading benchmark…</p>
+    <p>Price return, excluding dividends. Reset starts the benchmark at the next regular market open.</p>
+  </section>
+
   <section class="board" aria-labelledby="leaderboard">
     <div class="board-head">
       <div>
@@ -463,7 +481,7 @@ const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + perc
 const offline = document.documentElement.dataset.offline === 'true';
 const previewUrl = document.documentElement.dataset.preview;
 const scheduledLedger = document.documentElement.dataset.ledger;
-const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
+const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],benchmark:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
 const resetKey = 'spy-paper-run-start';
 function savedRunStart() {
@@ -618,7 +636,38 @@ function renderWeekDays(show) {
     button.setAttribute('aria-pressed',String(button.dataset.value === state.weekDay));
   }
 }
+function renderBenchmark() {
+  el('benchmark').hidden = state.mode === 'fiction';
+  const latest = state.benchmark.at(-1);
+  const entryIndex = state.benchmark.findIndex(point => point.opened >= paperRunStart);
+  const entry = state.benchmark[entryIndex];
+  const balance = el('benchmark-balance');
+  const total = el('benchmark-total');
+  const daily = el('benchmark-day');
+  const status = el('benchmark-status');
+  if (!entry || !latest) {
+    balance.textContent = '—';
+    total.textContent = '—';
+    daily.textContent = '—';
+    status.textContent = paperRunStart ? 'Waiting for the first market close after the reset.'
+      : 'Waiting for the first published SPY close.';
+    return;
+  }
+  const prior = state.benchmark.length - 1 === entryIndex ? entry.open : state.benchmark.at(-2).close;
+  const amount = capital * latest.close / entry.open;
+  const gain = amount - capital;
+  balance.textContent = usd.format(amount);
+  total.textContent = signedUsd.format(gain) + ' (' + percent.format(gain / capital) + ')';
+  total.className = pnlStyle(gain);
+  daily.textContent = percent.format(latest.close / prior - 1);
+  daily.className = pnlStyle(latest.close - prior);
+  const label = date => weekDayLabel.format(Date.parse(date + 'T12:00:00Z'));
+  status.textContent = 'Bought at the market open on ' + label(entry.date) +
+    ' · Valued at the market close on ' + label(latest.date);
+}
+
 function render() {
+  renderBenchmark();
   const replay = state.mode === 'fiction';
   for (const [id,active] of [['market',!replay],['fiction',replay]]) {
     el(id).setAttribute('aria-pressed',String(active));
@@ -1045,6 +1094,7 @@ async function refreshLedger() {
     state.armed = Boolean(payload.armed);
     state.error = payload.error || null;
     state.runs = payload.runs || [];
+    state.benchmark = Array.isArray(payload.benchmark) ? payload.benchmark : [];
   } catch {
     state.error = 'The market ledger could not be reached.';
   }

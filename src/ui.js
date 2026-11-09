@@ -10,7 +10,7 @@ const returnLabel = value => '<span class="num ' + pnlStyle(value) + '">' + perc
 const offline = document.documentElement.dataset.offline === 'true';
 const previewUrl = document.documentElement.dataset.preview;
 const scheduledLedger = document.documentElement.dataset.ledger;
-const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
+const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],benchmark:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
 const resetKey = 'spy-paper-run-start';
 function savedRunStart() {
@@ -165,7 +165,38 @@ function renderWeekDays(show) {
     button.setAttribute('aria-pressed',String(button.dataset.value === state.weekDay));
   }
 }
+function renderBenchmark() {
+  el('benchmark').hidden = state.mode === 'fiction';
+  const latest = state.benchmark.at(-1);
+  const entryIndex = state.benchmark.findIndex(point => point.opened >= paperRunStart);
+  const entry = state.benchmark[entryIndex];
+  const balance = el('benchmark-balance');
+  const total = el('benchmark-total');
+  const daily = el('benchmark-day');
+  const status = el('benchmark-status');
+  if (!entry || !latest) {
+    balance.textContent = '—';
+    total.textContent = '—';
+    daily.textContent = '—';
+    status.textContent = paperRunStart ? 'Waiting for the first market close after the reset.'
+      : 'Waiting for the first published SPY close.';
+    return;
+  }
+  const prior = state.benchmark.length - 1 === entryIndex ? entry.open : state.benchmark.at(-2).close;
+  const amount = capital * latest.close / entry.open;
+  const gain = amount - capital;
+  balance.textContent = usd.format(amount);
+  total.textContent = signedUsd.format(gain) + ' (' + percent.format(gain / capital) + ')';
+  total.className = pnlStyle(gain);
+  daily.textContent = percent.format(latest.close / prior - 1);
+  daily.className = pnlStyle(latest.close - prior);
+  const label = date => weekDayLabel.format(Date.parse(date + 'T12:00:00Z'));
+  status.textContent = 'Bought at the market open on ' + label(entry.date) +
+    ' · Valued at the market close on ' + label(latest.date);
+}
+
 function render() {
+  renderBenchmark();
   const replay = state.mode === 'fiction';
   for (const [id,active] of [['market',!replay],['fiction',replay]]) {
     el(id).setAttribute('aria-pressed',String(active));
@@ -592,6 +623,7 @@ async function refreshLedger() {
     state.armed = Boolean(payload.armed);
     state.error = payload.error || null;
     state.runs = payload.runs || [];
+    state.benchmark = Array.isArray(payload.benchmark) ? payload.benchmark : [];
   } catch {
     state.error = 'The market ledger could not be reached.';
   }

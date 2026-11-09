@@ -1,6 +1,8 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {day, hold, launch, minute, settlePrices, slotPrices, scheduledSlotsBetween} from '../dist/server/index.js';
 
+import {benchmarkHistory} from './benchmark-history.mjs';
+
 const path = process.argv[2];
 if (!path) throw new Error('Supply a paper ledger JSON path.');
 if (!process.env.ALPACA_KEY_ID || !process.env.ALPACA_SECRET_KEY) {
@@ -41,9 +43,15 @@ for (const slot of due) {
   runs.push(result);
   added++;
 }
-if (!added && failures) throw new Error('No due sessions could be published. Check the data feed and retry.');
-if (added) {
+const oldBenchmark = previous.benchmark ?? [];
+const benchmark = await benchmarkHistory(process.env,now,oldBenchmark).catch(error => {
+  console.warn('Benchmark could not refresh: ' + error.message);
+  return oldBenchmark;
+});
+const benchmarkChanged = JSON.stringify(benchmark) !== JSON.stringify(oldBenchmark);
+if (!added && !benchmarkChanged && failures) throw new Error('No due sessions could be published. Check the data feed and retry.');
+if (added || benchmarkChanged) {
   runs.sort((a, b) => a.slot - b.slot);
-  await writeFile(path, JSON.stringify({armed:true, runs}) + '\n');
+  await writeFile(path, JSON.stringify({armed:true,runs,benchmark}) + '\n');
 }
 console.log(`Paper ledger added ${added} session(s); ${failures} provider error(s) remain eligible for retry.`);

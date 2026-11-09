@@ -147,3 +147,9 @@ h3 {font-size:.95rem;margin:11px 0 5px}
 .paper-run-controls {display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:0 20px 10px;font-size:.82rem;color:var(--soft)}
 .reset-paper-run {border:1px solid var(--line);border-radius:7px;padding:7px 11px;background:var(--mint);color:var(--accent);font-weight:700}
 @media(max-width:540px) {.paper-run-controls {padding-inline:12px}}
+
+.benchmark {margin-bottom:14px;padding:17px 20px}
+.benchmark h2 {margin:0}
+.benchmark dl {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:.65rem 1rem;margin:12px 0}
+.benchmark dt,.benchmark p {font-size:.84rem;color:var(--soft)}
+.benchmark dd {margin:0;font-size:1.15rem;font-weight:700}
