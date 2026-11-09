@@ -12,6 +12,17 @@ const previewUrl = document.documentElement.dataset.preview;
 const scheduledLedger = document.documentElement.dataset.ledger;
 const state = {mode:'market',period:'all',weekDay:'all',session:'all',runs:[],configured:false,detail:null,quote:null,error:null,quoteError:null,armed:false};
 
+const resetKey = 'spy-paper-run-start';
+function savedRunStart() {
+  try {
+    const start = Number(localStorage.getItem(resetKey));
+    return Number.isSafeInteger(start) && start > 0 ? start : 0;
+  } catch {
+    return 0;
+  }
+}
+let paperRunStart = savedRunStart();
+
 const fictional = {runs:[],end:0,source:'',loading:false,error:'',selectedDay:'all'};
 const shortDate = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',day:'numeric',month:'short'});
 const berlinDate = new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'});
@@ -97,14 +108,30 @@ function scoped(applyPeriod = true, applySession = true) {
   const start = !replay && applyPeriod && state.period === '1' ? now - day : 0;
   return runs.filter(run => {
     const date = berlinDate.format(run.slot);
-    return (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
+    return (replay || run.slot >= paperRunStart) &&
+      (run.trades?.[0]?.exitTime ?? run.slot + hold * minute) > start &&
       (!weekStart || (date >= weekStart && (state.weekDay === 'all' || date === state.weekDay))) &&
       (!replay || !applyPeriod || fictional.selectedDay === 'all' || date === fictional.selectedDay) &&
       (!applySession || state.session === 'all' || sessionKey(run.slot) === state.session);
   });
 }
 function tradesFor(runs, index) {
-  return runs.filter(run => run.status === 'settled' && run.trades[index]?.side).map(run => ({...run.trades[index],slot:run.slot,feed:run.feed,samples:run.trainingSamples,score:run.ensembleScore}));
+  const trades = runs.filter(run => run.status === 'settled' && run.trades[index]?.side)
+    .map(run => ({...run.trades[index],slot:run.slot,feed:run.feed,samples:run.trainingSamples,score:run.ensembleScore}))
+    .sort((a,b) => a.slot - b.slot);
+  if (state.mode === 'fiction') return trades;
+  let available = capital;
+  const sized = [];
+  for (const trade of trades) {
+    if (available <= 0) break;
+    const position = available;
+    const ratio = position / capital;
+    const pnl = Math.max(-position,round(trade.pnl * ratio));
+    available = round(position + pnl);
+    sized.push({...trade,position,pnl,balanceAfter:available,
+      quantity:trade.quantity * ratio,fees:trade.fees * ratio});
+  }
+  return sized;
 }
 const periodNames = {'1':'Last day','7':'Last week',all:'Since Nov 9, 2026'};
 const timeName = time => sessions.find(session => session.time === time)?.label;
@@ -112,13 +139,16 @@ function displaySessionTime(time) {
   const date = state.mode === 'fiction' ? fictional.selectedDay : state.period === '7' ? state.weekDay : 'all';
   return berlinSessionTime(time, date === 'all' ? Date.now() : Date.parse(date + 'T12:00:00Z'));
 }
+const selectTrades = (trades, slots) => trades.filter(trade => slots.has(trade.slot));
+const runSlots = runs => new Set(runs.map(run => run.slot));
 const countTrades = count => count + (count === 1 ? ' trade' : ' trades');
 function selectionLabel() {
   const time = state.session === 'all' ? 'All times' : timeName(state.session) + ' · ' + displaySessionTime(state.session);
   if (state.mode === 'fiction') return (fictional.selectedDay === 'all' ? 'Past 7 days' : fictional.selectedDay) + ' · ' + time;
   const selected = state.period === '7' && state.weekDay !== 'all'
     ? weekDayLabel.format(Date.parse(state.weekDay + 'T00:00:00Z')) : periodNames[state.period];
-  return selected + ' · ' + time;
+  const period = state.period === 'all' && paperRunStart ? 'Since reset' : selected;
+  return period + ' · ' + time;
 }
 function renderWeekDays(show) {
   el('week-day-filter').hidden = !show;
@@ -141,6 +171,10 @@ function render() {
     el(id).setAttribute('aria-pressed',String(active));
   }
   el('period-filter').hidden = replay;
+  el('paper-run-controls').hidden = replay;
+  el('paper-run-start').textContent = paperRunStart
+    ? 'Run started ' + timestamp.format(paperRunStart) + ' Berlin time'
+    : 'Compounding since launch';
   el('next-move-filter').hidden = replay;
   if (replay) setNextMove(false);
   renderWeekDays(!replay && state.period === '7');
@@ -175,11 +209,11 @@ function render() {
       button.setAttribute('aria-pressed',String(state[type] === button.dataset.value));
     }
   }
-  const selected = scoped();
+  const selected = runSlots(scoped());
   const all = scoped(false,false);
   const rankings = tactics.map((tactic,index) => {
-    const trades = tradesFor(selected,index);
     const total = tradesFor(all,index);
+    const trades = selectTrades(total,selected);
     return {tactic,index,trades,pnl:sum(trades),total};
   }).sort((a,b) => Number(Boolean(b.trades.length)) - Number(Boolean(a.trades.length)) || b.pnl - a.pnl || a.index - b.index);
   const focusedIndex = document.activeElement?.closest('#rankings [data-id]')?.dataset.id;
@@ -402,9 +436,9 @@ function updatePlan() {
 function renderDetails(index) {
   const [,label,type,description,schedule] = tactics[index];
   const runs = scoped();
-  const trades = tradesFor(runs,index);
   const allTrades = tradesFor(scoped(false,false),index);
-  const byTime = tradesFor(scoped(true,false),index);
+  const trades = selectTrades(allTrades,runSlots(runs));
+  const byTime = selectTrades(allTrades,runSlots(scoped(true,false)));
   const noSignal = runs.filter(run => run.status === 'settled' && run.trades[index]?.side === 0).length;
   const skipped = runs.filter(run => run.status === 'skipped').length;
   const slots = sessions.map(session => {
@@ -418,9 +452,12 @@ function renderDetails(index) {
       timestamp.format(time) + '</small></dd></div>';
     return '<li class="trade"><div class="trade-title"><b>' + slotLabel(trade.slot) + ' · Bet ' + (isUp?'up':'down') +
       '</b><span class="trade-pnl"><strong class="' + pnlStyle(trade.pnl) + '">' + signedUsd.format(trade.pnl) + '</strong> ' +
-      returnLabel(trade.pnl) + '</span></div><dl>' +
+      (trade.position ? '<span class="num ' + pnlStyle(trade.pnl) + '">' + percent.format(trade.pnl / trade.position) + '</span>'
+        : returnLabel(trade.pnl)) + '</span></div><dl>' +
       fill(isUp?'Bought':'Sold to open',trade.entryTime,trade.entry) +
-      fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + '</dl>' +
+      fill(isUp?'Sold':'Bought back',trade.exitTime,trade.exit) + (trade.position
+        ? '<div><dt>Position size</dt><dd>' + usd.format(trade.position) + '</dd></div>' +
+          '<div><dt>Balance after trade</dt><dd>' + usd.format(trade.balanceAfter) + '</dd></div>' : '') + '</dl>' +
       (trade.rules?.length ? '<p class="subtle">Rules used · ' + mixNames(trade.rules) + '</p>' : '') +
       '<p class="subtle">' + (Number.isFinite(trade.quantity)
         ? trade.quantity.toFixed(5) + ' shares · ' + usd.format(trade.fees) + ' in costs · ' : 'Calculated from historical minute bars · ') +
@@ -460,6 +497,32 @@ el('week-day').addEventListener('click',event => {
   state.weekDay = button.dataset.value;
   render();
 });
+el('reset-paper-run').addEventListener('click',() => {
+  if (!window.confirm('Start all strategies again at $1,000 in this browser? The new run counts trades opened after the reset.')) return;
+  const start = Date.now();
+  try {
+    localStorage.setItem(resetKey,String(start));
+  } catch {
+    el('paper-run-message').textContent = 'This browser could not save the reset.';
+    return;
+  }
+  paperRunStart = start;
+  state.period = 'all';
+  state.weekDay = 'all';
+  state.session = 'all';
+  render();
+  el('paper-run-message').textContent = 'All strategies restarted at $1,000.';
+});
+window.addEventListener('storage',event => {
+  if (event.key !== resetKey && event.key !== null) return;
+  paperRunStart = savedRunStart();
+  render();
+  if (state.detail !== null) {
+    renderDetails(state.detail);
+    updatePlan();
+  }
+});
+
 el('reset').addEventListener('click',() => {
   if (state.mode === 'fiction') fictional.selectedDay = 'all';
   else {

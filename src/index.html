@@ -90,7 +90,7 @@
       <div>
         <p class="eyebrow">12 BASIC STRATEGIES · 5 MIXES</p>
         <h2 id="leaderboard" tabindex="-1">Compare strategies</h2>
-        <p>Profit or loss is a percentage of the starting $1,000 and follows your filters. Balance shows your total in dollars.</p>
+        <p>Profit or loss follows your filters and is measured against the starting $1,000. Balance shows the full run.</p>
       </div>
     </div>
     <div id="history-input" class="history-input" hidden>
@@ -136,6 +136,11 @@
       <ul id="next-move-list"></ul>
       <p class="plan-note">Signals can change before the window starts. Sell (short) means the strategy expects SPY to fall.</p>
     </section>
+    <div id="paper-run-controls" class="paper-run-controls">
+      <button type="button" id="reset-paper-run" class="reset-paper-run">RESET $1,000</button>
+      <span id="paper-run-start"></span>
+      <span id="paper-run-message" role="status"></span>
+    </div>
     <div class="selection"><p id="selection" role="status"></p><button type="button" id="reset" class="text-button" hidden>Reset filters</button></div>
     <div class="rank-header" aria-hidden="true"><span></span><span>Strategy</span><span>Return %</span><span>Balance</span><span></span></div>
     <ol id="rankings" class="rankings" aria-label="Ranked strategies"></ol>
@@ -143,7 +148,7 @@
   <footer>
     <details>
       <summary>How paper trading works</summary>
-      <p>Each strategy starts with $1,000 in virtual money. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at <span id="schedule-times">15:15, 15:45, 18:00, 21:15</span> Berlin time. The windows follow New York market time, so the Berlin times adjust when clocks change. Each trade lasts about 30 minutes.</p>
+      <p>Each strategy starts with $1,000 in virtual money. In My results, each trade uses the strategy's full remaining balance. Reset starts a new run on this browser from the next trade window. The experiment starts on November 9, 2026. Strategies look for up to four trades each weekday at <span id="schedule-times">15:15, 15:45, 18:00, 21:15</span> Berlin time. The windows follow New York market time, so the Berlin times adjust when clocks change. Each trade lasts about 30 minutes.</p>
       <p>A strategy can sit out when its rule gives no signal or market prices are missing. Results include simulated trading costs of 0.03% on entry and exit. A bet down gains when SPY falls.</p>
     </details>
   </footer>
