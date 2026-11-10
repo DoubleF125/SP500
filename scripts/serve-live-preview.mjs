@@ -31,8 +31,9 @@ async function calculate(now) {
       return {slot,directions,groups};
     });
     return {status:'live',feed,asOf,windows};
-  } catch {
-    return {status:'unavailable',feed};
+  } catch (error) {
+    const status = /Market data provider returned HTTP (\d{3})/.exec(error.message)?.[1];
+    return {status:'unavailable',feed,reason:status ? 'provider_http_' + status : 'preview_calculation_failed'};
   }
 }
 
