@@ -179,7 +179,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     .week-day-filter { flex-basis:100%; }
     .week-day-filter .pills { flex-wrap:wrap; max-width:100%; }
   </style>
-</head>
+<style>.market-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.market-chart{min-width:0}.market-chart h3{margin:12px 0 4px}.market-chart .tradingview-widget-container{height:400px!important;width:100%}.market-charts .market-chart:first-child>h3{margin-bottom:39px}@media(max-width:700px){.market-charts{grid-template-columns:1fr}.market-charts .market-chart:first-child>h3{margin-bottom:4px}}</style></head>
 <body>
 <a class="skip" href="#leaderboard">Skip to strategies</a>
 <header class="top">
@@ -203,6 +203,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     <h2 id="market-overview-title">S&amp;P 500 tracker in euros</h2>
     <p>SPY ETF price and returns converted to EUR. Quotes are delayed by 15 minutes. Choose 1D, 1W, 1M or 1Y to view each period.</p>
     <p><a href="https://www.tradingview.com/symbols/SPX/" target="_blank" rel="noopener noreferrer">Official S&amp;P 500 index (SPX)</a></p>
+    <div class="market-charts"><div class="market-chart"><h3>Berlin time · Europe/Berlin</h3>
     <div class="tradingview-widget-container">
       <div class="tradingview-widget-container__widget"></div>
       <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
@@ -210,6 +211,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
       {
         "symbols": [["SPY", "AMEX:SPY|1D|EUR"]],
         "dateRanges": ["1d|1", "1w|60", "1m|30", "12m|1D"],
+        "timezone": "Europe/Berlin",
         "autosize": true,
         "colorTheme": "light",
         "locale": "en",
@@ -221,6 +223,29 @@ h3 {font-size:.95rem;margin:11px 0 5px}
       }
       </script>
     </div>
+    </div><div class="market-chart"><h3>U.S. market time · New York</h3>
+    <p>Regular session: opens 09:30 · closes 16:00 ET. Holidays and early closes apply.</p>
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
+      <script src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+      {
+        "symbols": [["SPY", "AMEX:SPY|1D|EUR"]],
+        "dateRanges": ["1d|1", "1w|60", "1m|30", "12m|1D"],
+        "timezone": "America/New_York",
+        "autosize": true,
+        "colorTheme": "light",
+        "locale": "en",
+        "chartType": "area",
+        "changeMode": "price-and-percent",
+        "hideMarketStatus": false,
+        "hideDateRanges": false,
+        "showVolume": false
+      }
+      </script>
+    </div>
+    </div></div>
+    <p>Both charts show the same SPY price in EUR. New York time follows U.S. daylight saving time.</p>
   </section>
   <section class="hero" aria-labelledby="page-heading">
     <div>
