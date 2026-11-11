@@ -203,7 +203,7 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     <h2 id="market-overview-title">S&amp;P 500 tracker in euros</h2>
     <p>SPY ETF price and returns converted to EUR. Quotes are delayed by 15 minutes. Choose 1D, 1W, 1M or 1Y to view each period.</p>
     <p><a href="https://www.tradingview.com/symbols/SPX/" target="_blank" rel="noopener noreferrer">Official S&amp;P 500 index (SPX)</a></p>
-    <div class="market-charts"><div class="market-chart"><h3>Berlin time · Europe/Berlin</h3>
+    <div class="market-charts"><div class="market-chart"><h3>Original SPY overview</h3>
     <div class="tradingview-widget-container">
       <div class="tradingview-widget-container__widget"></div>
       <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
@@ -228,24 +228,12 @@ h3 {font-size:.95rem;margin:11px 0 5px}
     <div class="tradingview-widget-container">
       <div class="tradingview-widget-container__widget"></div>
       <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
-      <script src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-      {
-        "symbols": [["SPY", "AMEX:SPY|1D|EUR"]],
-        "dateRanges": ["1d|1", "1w|60", "1m|30", "12m|1D"],
-        "timezone": "America/New_York",
-        "autosize": true,
-        "colorTheme": "light",
-        "locale": "en",
-        "chartType": "area",
-        "changeMode": "price-and-percent",
-        "hideMarketStatus": false,
-        "hideDateRanges": false,
-        "showVolume": false
-      }
+      <script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+{"autosize":true,"symbol":"AMEX:SPY","interval":"1","timezone":"America/New_York","theme":"light","style":"3","locale":"en","withdateranges":true,"range":"1D","allow_symbol_change":false,"calendar":false,"hide_side_toolbar":true,"currency":"EUR"}
       </script>
     </div>
     </div></div>
-    <p>Both charts show the same SPY price in EUR. New York time follows U.S. daylight saving time.</p>
+    <p>Both charts track SPY in EUR. The U.S. chart uses New York time and follows U.S. daylight saving time.</p>
   </section>
   <section class="hero" aria-labelledby="page-heading">
     <div>
