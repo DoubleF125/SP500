@@ -25,7 +25,7 @@
     .week-day-filter { flex-basis:100%; }
     .week-day-filter .pills { flex-wrap:wrap; max-width:100%; }
   </style>
-<style>.market-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.market-chart{min-width:0}.market-chart .tradingview-widget-container{height:400px!important;width:100%}@media(max-width:700px){.market-charts{grid-template-columns:1fr}}</style></head>
+<style>.market-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.market-chart{min-width:0}.market-chart .tradingview-widget-container{height:400px!important;width:100%}@media(max-width:700px){.market-charts{grid-template-columns:1fr}}</style><style>.market-charts .market-chart:first-child>h3{margin-bottom:4px}.market-chart>p{min-height:40px}.market-chart .tradingview-widget-container{height:360px!important}</style></head>
 <body>
 <a class="skip" href="#leaderboard">Skip to strategies</a>
 <header class="top">
@@ -45,42 +45,14 @@
 </header>
 <main class="wrap">
   <section class="market-overview" aria-labelledby="market-overview-title">
-    <p class="eyebrow">MARKET OVERVIEW · EUR</p>
-    <h2 id="market-overview-title">S&amp;P 500 tracker in euros</h2>
-    <p>SPY ETF price and returns converted to EUR. Quotes are delayed by 15 minutes. Choose 1D, 1W, 1M or 1Y to view each period.</p>
-    <p><a href="https://www.tradingview.com/symbols/SPX/" target="_blank" rel="noopener noreferrer">Official S&amp;P 500 index (SPX)</a></p>
-    <div class="market-charts"><div class="market-chart"><h3>Original SPY overview</h3>
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
-      <script src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-      {
-        "symbols": [["SPY", "AMEX:SPY|1D|EUR"]],
-        "dateRanges": ["1d|1", "1w|60", "1m|30", "12m|1D"],
-        "timezone": "Europe/Berlin",
-        "autosize": true,
-        "colorTheme": "light",
-        "locale": "en",
-        "chartType": "area",
-        "changeMode": "price-and-percent",
-        "hideMarketStatus": false,
-        "hideDateRanges": false,
-        "showVolume": false
-      }
-      </script>
-    </div>
-    </div><div class="market-chart"><h3>U.S. market time · New York · USD</h3>
-    <p>Regular session: opens 09:30 · closes 16:00 ET. Holidays and early closes apply.</p>
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div>
-      <script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-{"autosize":true,"symbol":"AMEX:SPY","interval":"1","timezone":"America/New_York","theme":"light","style":"3","locale":"en","withdateranges":true,"range":"1D","allow_symbol_change":false,"calendar":false,"hide_side_toolbar":true,"currency":"EUR","currency_code":"EUR"}
-      </script>
-    </div>
-    </div></div>
-    <p>The original overview shows EUR; the U.S. chart shows the exchange price in USD with a New York time axis. Both track SPY.</p>
-  </section>
+<p class="eyebrow">MARKET OVERVIEW · SPY · USD</p>
+<h2 id="market-overview-title">One market. Two clocks.</h2>
+<p>The same SPY ETF and U.S. dollar prices in both charts. Only the time zone changes. Quotes are delayed by 15 minutes.</p>
+<div class="market-charts">
+<div class="market-chart"><h3>Berlin time</h3><p>Europe/Berlin · German clock changes automatically</p><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div><script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>{"autosize":true,"symbol":"AMEX:SPY","interval":"1","timezone":"Europe/Berlin","theme":"light","style":"3","locale":"en","withdateranges":true,"range":"1D","allow_symbol_change":false,"hide_top_toolbar":true,"hide_side_toolbar":true,"hide_legend":true,"hide_volume":true,"save_image":false,"calendar":false,"studies":[],"support_host":"https://www.tradingview.com","overrides":{"mainSeriesProperties.areaStyle.linecolor":"#23614f","mainSeriesProperties.areaStyle.color1":"#dceee6","mainSeriesProperties.areaStyle.color2":"#ffffff"}}</script></div></div>
+<div class="market-chart"><h3>U.S. market time</h3><p>New York · Regular session 09:30–16:00 ET</p><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/AMEX-SPY/" target="_blank" rel="noopener nofollow">SPY price</a> by TradingView</div><script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>{"autosize":true,"symbol":"AMEX:SPY","interval":"1","timezone":"America/New_York","theme":"light","style":"3","locale":"en","withdateranges":true,"range":"1D","allow_symbol_change":false,"hide_top_toolbar":true,"hide_side_toolbar":true,"hide_legend":true,"hide_volume":true,"save_image":false,"calendar":false,"studies":[],"support_host":"https://www.tradingview.com","overrides":{"mainSeriesProperties.areaStyle.linecolor":"#23614f","mainSeriesProperties.areaStyle.color1":"#dceee6","mainSeriesProperties.areaStyle.color2":"#ffffff"}}</script></div></div>
+</div><p>Use the date range below either chart to compare the same period. U.S. holidays and early closes apply.</p>
+</section>
   <section class="hero" aria-labelledby="page-heading">
     <div>
       <p class="eyebrow">PAPER TRADING · $1,000 PER STRATEGY</p>
