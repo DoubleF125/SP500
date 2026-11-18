@@ -11,16 +11,32 @@ async function calculate(now) {
     return {status:'unconfigured',feed};
   }
   try {
-    const {bars} = await market(process.env, 'bars', {
-      feed:'iex',timeframe:'1Min',adjustment:'raw',limit:'100',
-      start:new Date(now - 60 * minute).toISOString(),end:new Date(now).toISOString(),
-    });
-    const recent = (bars ?? []).filter(bar =>
-      Date.parse(bar.t) + minute <= now &&
-      [bar.c,bar.h,bar.l,bar.v].every(value => Number.isFinite(value) && value > 0)
-    ).sort((a,b) => Date.parse(a.t) - Date.parse(b.t)).slice(-30);
-    const asOf = Date.parse(recent.at(-1)?.t) + minute;
-    if (recent.length < 21 || now - asOf > 3 * minute) return {status:'waiting',feed};
+    // Prefer consolidated real-time coverage; fall back without requiring a paid upgrade.
+    let selected;
+    let lastError;
+    for (const source of ['sip','iex']) {
+      try {
+        const {bars} = await market(process.env, 'bars', {
+          feed:source,timeframe:'1Min',adjustment:'raw',limit:'100',sort:'desc',
+          start:new Date(now - 7 * day).toISOString(),end:new Date(now).toISOString(),
+        });
+        const valid = (bars ?? []).filter(bar =>
+          Date.parse(bar.t) + minute <= now &&
+          [bar.c,bar.h,bar.l].every(value => Number.isFinite(value) && value > 0) &&
+          Number.isFinite(bar.v) && bar.v >= 0
+        ).sort((a,b) => Date.parse(a.t) - Date.parse(b.t));
+        const asOf = Date.parse(valid.at(-1)?.t) + minute;
+        const recent = valid.filter(bar => Date.parse(bar.t) >= asOf - 60 * minute).slice(-30);
+        const candidate = {recent,asOf,feed:source.toUpperCase()};
+        if (recent.length >= 21 && (!selected || asOf > selected.asOf)) selected = candidate;
+        if (selected && now - selected.asOf <= 3 * minute) break;
+      } catch (error) { lastError = error; }
+    }
+    if (!selected) {
+      if (lastError && /HTTP 401/.test(lastError.message)) throw lastError;
+      return {status:'waiting',feed,reason:'insufficient_bars',requiredBars:21};
+    }
+    const {recent,asOf,feed:activeFeed} = selected;
 
     const response = await fetch(ledgerUrl,{signal:AbortSignal.timeout(7000),cache:'no-cache'});
     if (!response.ok) throw new Error('Paper ledger unavailable.');
@@ -30,7 +46,7 @@ async function calculate(now) {
       const {directions,groups} = signals(recent,runs,slot);
       return {slot,directions,groups};
     });
-    return {status:'live',feed,asOf,windows};
+    return {status:now - asOf <= 3 * minute ? 'live' : 'snapshot',feed:activeFeed,asOf,windows};
   } catch (error) {
     const status = /Market data provider returned HTTP (\d{3})/.exec(error.message)?.[1];
     return {status:'unavailable',feed,reason:status ? 'provider_http_' + status : 'preview_calculation_failed'};
